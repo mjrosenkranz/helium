@@ -204,6 +204,7 @@ void handle_button_press(XEvent *ev) {
 }
 
 void handle_property_notify(XEvent *ev) {
+	/* use thos later for changing the title */
 
 	fprintf(stderr, "property notify handled\n");
 }
