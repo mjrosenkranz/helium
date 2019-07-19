@@ -2,12 +2,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include <X11/extensions/shape.h>
+#include <math.h>
 /*libraries */
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
+#include <X11/extensions/shape.h>
 /* my includes */
 #include "structs.h"
+#include "ipc.h"
+#include "globals.h"
 
 /* display struct */
 static Display *display;
@@ -23,42 +26,58 @@ struct cwindow *cw_stack = NULL, *f_stack = NULL;
 struct cwindow *focused = NULL;
 /* atom for focus */
 static Atom net_atom[NetLast], wm_atom[WMLast];
+/* are we running the wm */
+static bool running = true;
 
 /* functions */
-void open_display();
-void close_display();
-void run();
-void handle_map_request(XEvent *ev);
-void handle_unmap_notify(XEvent *ev);
-void handle_configure_request(XEvent *ev);
-void handle_configure_notify(XEvent *ev);
-void handle_client_message(XEvent *ev);
-void handle_button_press(XEvent *ev);
-void handle_property_notify(XEvent *ev);
-void handle_expose(XEvent *ev);
-void manage_window(Window w, XWindowAttributes *wa);
-void create_decorations(struct cwindow *cw);
-void pix_mask(Window win, int x, int y, int w, int h, bool top);
-void cwindow_save(struct cwindow *cw);
-void cwindow_del(struct cwindow *cw);
-void cwindow_focus(struct cwindow *cw);
-void change_color(struct cwindow *cw, unsigned long color);
-int send_icccm(struct cwindow *cw, Atom atom);
-struct cwindow *get_cwindow(Window w);
+static void open_display();
+static void close_display();
+static void run();
+static void handle_map_request(XEvent *ev);
+static void handle_unmap_notify(XEvent *ev);
+static void handle_configure_request(XEvent *ev);
+static void handle_configure_notify(XEvent *ev);
+static void handle_client_message(XEvent *ev);
+static void handle_button_press(XEvent *ev);
+static void handle_property_notify(XEvent *ev);
+static void handle_expose(XEvent *ev);
+static void manage_window(Window w, XWindowAttributes *wa);
+static void create_decorations(struct cwindow *cw);
+static void pix_mask(Window win, int x, int y, int w, int h, bool top);
+static void cwindow_save(struct cwindow *cw);
+static void cwindow_del(struct cwindow *cw);
+static void cwindow_focus(struct cwindow *cw);
+static void change_color(struct cwindow *cw, unsigned long color);
+static int send_icccm(struct cwindow *cw, Atom atom);
+static struct cwindow *get_cwindow(Window w);
+static void handle_focus_cardinal(long *data);
+static void handle_move_relative(long *data);
+static void handle_move_to(long *data);
+static void handle_resize_relative(long *data);
+static void handle_exit(long *data);
+static int distance(struct cwindow *a, struct cwindow *b);
 
-/* array of functions for ewindow events */
+/* array of functions for cwindow events */
 static void (*event_handler[LASTEvent])(XEvent *ev) = {
-	[MapRequest]       = handle_map_request,
-    [UnmapNotify]      = handle_unmap_notify,
-    [ConfigureNotify]  = handle_configure_notify,
-    [ConfigureRequest] = handle_configure_request,
-    [ClientMessage]    = handle_client_message,
-    [ButtonPress]      = handle_button_press,
-    [PropertyNotify]   = handle_property_notify,
-	[Expose] = handle_expose
+	[MapRequest]		= handle_map_request,
+    [UnmapNotify]		= handle_unmap_notify,
+    [ConfigureNotify]	= handle_configure_notify,
+    [ConfigureRequest]	= handle_configure_request,
+    [ClientMessage]		= handle_client_message,
+    [ButtonPress]		= handle_button_press,
+    [PropertyNotify]	= handle_property_notify,
+	[Expose]			= handle_expose
+};
+/* array of functions for client message events */
+static void (*client_event_handler[ipc_last])(long *data) = {
+	[ipc_focus_cardinal]	= handle_focus_cardinal,
+	[ipc_move_relative]		= handle_move_relative,
+	[ipc_move_to]			= handle_move_to,
+	[ipc_resize_relative]	= handle_resize_relative,
+	[ipc_exit]				= handle_exit,
 };
 
-void open_display() {
+static void open_display() {
 	/* opens display */
 	display = XOpenDisplay(NULL);
 	/* gets screen  number and info of opened display */
@@ -73,11 +92,11 @@ void open_display() {
 	/* get events for the root window */
 	XSelectInput(display, root, SubstructureRedirectMask|SubstructureNotifyMask|ButtonPressMask|Button1Mask);
 	/* default config stuff */
-	conf.b_width = 5;
-	conf.radius = 15;
-	conf.t_height = 20;
-	conf.u_color = 0x343d41;
-	conf.f_color = 0xb89ca8;
+	conf.b_width = DEFAULT_B_WIDTH;
+	conf.radius = DEFAULT_RADIUS;
+	conf.t_height = DEFAULT_T_HEIGHT;
+	conf.u_color = DEFAULT_U_COLOR;
+	conf.f_color = DEFAULT_F_COLOR;
 	/* ewmh */
 	net_atom[NetSupported]           = XInternAtom(display, "_NET_SUPPORTED", False);
     net_atom[NetNumberOfDesktops]    = XInternAtom(display, "_NET_NUMBER_OF_DESKTOPS", False);
@@ -104,17 +123,18 @@ void open_display() {
 	XChangeProperty(display, root, net_atom[NetWMCheck], XA_WINDOW, 32, PropModeReplace, (unsigned char *) &check, 1);
 }
 
-void close_display() {
+static void close_display() {
+
 	XCloseDisplay(display);
 	fprintf(stderr, "closing display\n");
 }
 
-void run(){
+static void run(){
 
 	/* next queued event */
 	XEvent qev;
 
-	while(True) {
+	while(running) {
 		/* outputs the next event in the queue to qev */
 		XNextEvent(display, &qev);
 		/* check if event is something we can handle */
@@ -124,7 +144,7 @@ void run(){
 	}
 }
 
-void handle_map_request(XEvent *ev) {
+static void handle_map_request(XEvent *ev) {
 	
 	/* struct of window attributes */
 	static XWindowAttributes win_attr;
@@ -144,7 +164,7 @@ void handle_map_request(XEvent *ev) {
 	fprintf(stderr, "map request handled\n");
 }
 
-void handle_unmap_notify(XEvent *ev) {
+static void handle_unmap_notify(XEvent *ev) {
 	XUnmapEvent *uev = &ev->xunmap;
 	struct cwindow *cw;
 	cw = get_cwindow(uev->window);
@@ -156,29 +176,37 @@ void handle_unmap_notify(XEvent *ev) {
 		fprintf(stderr, "window decoration destroyed\n");
 		focused = f_stack;
 		cwindow_focus(focused);
-		//free(cw);
 		fprintf(stderr, "unmap notify handled\n");
 	} else {
 		fprintf(stderr, "window to unmap not found\n");
 	}
 }
 
-void handle_configure_request(XEvent *ev) {
+static void handle_configure_request(XEvent *ev) {
 
 	fprintf(stderr, "configure request handled\n");
 }
 
-void handle_configure_notify(XEvent *ev) {
+static void handle_configure_notify(XEvent *ev) {
 
 	fprintf(stderr, "configure notify handled\n");
 }
 
-void handle_client_message(XEvent *ev) {
+static void handle_client_message(XEvent *ev) {
+	fprintf(stderr, "client message recieved\n");
 
-	fprintf(stderr, "client message handled\n");
+	XClientMessageEvent *xev = &ev->xclient;
+	long cmd, *data;
+	cmd = xev->data.l[0];
+	data = xev->data.l;
+
+	if (xev->message_type == XInternAtom(display, HELIUMC_EVENT, False)) {
+		fprintf(stderr, "%s handled\n", HELIUMC_EVENT);
+		client_event_handler[cmd](data);
+	}
 }
 
-void handle_button_press(XEvent *ev) {
+static void handle_button_press(XEvent *ev) {
 
 	XButtonPressedEvent *bev;
 	struct cwindow *cw;
@@ -203,17 +231,17 @@ void handle_button_press(XEvent *ev) {
 	fprintf(stderr, "button press handled\n");
 }
 
-void handle_property_notify(XEvent *ev) {
+static void handle_property_notify(XEvent *ev) {
 	/* use thos later for changing the title */
 
 	fprintf(stderr, "property notify handled\n");
 }
 
-void handle_expose(XEvent *ev) {
+static void handle_expose(XEvent *ev) {
 	fprintf(stderr, "expose handled\n");
 }
 
-void manage_window(Window w, XWindowAttributes *wa) {
+static void manage_window(Window w, XWindowAttributes *wa) {
 	/* TODO check if the window is a dock */
 	/* create the client window struct */
 	struct cwindow *cw;
@@ -244,7 +272,7 @@ void manage_window(Window w, XWindowAttributes *wa) {
 	XSelectInput(display, cw->window, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
 }
 
-void create_decorations(struct cwindow *cw) {
+static void create_decorations(struct cwindow *cw) {
 	/* calculate dummy window dimentions */
 	int x = cw->dims.x;
 	int y = cw->dims.y;
@@ -254,7 +282,7 @@ void create_decorations(struct cwindow *cw) {
 	if (conf.b_width > 0 || conf.t_height > 0) {
 		XMoveWindow(display, cw->window, x + conf.b_width, y + conf.b_width + conf.t_height);
 		/* create the border window */
-		Window dec = XCreateSimpleWindow(display, root, x, y, w, h, 0, conf.u_color, conf.u_color);
+		Window dec = XCreateSimpleWindow(display, root, x, y, w, h, 0, conf.f_color, conf.f_color);
 		pix_mask(dec, x, y, w, h, false);
 		/* assign the border window */
 		cw->dec = dec;
@@ -263,8 +291,8 @@ void create_decorations(struct cwindow *cw) {
 
 		/* make window show up */
 		XMapWindow(display, cw->dec);
-	/* grab the mouse (left click), any modifier, over the decoration window */
-	XGrabButton(display, 1, AnyModifier, cw->dec, True, ButtonPressMask, GrabModeAsync, GrabModeAsync, None, None);
+		/* grab the mouse (left click), any modifier, over the decoration window */
+		XGrabButton(display, 1, AnyModifier, cw->dec, True, ButtonPressMask, GrabModeAsync, GrabModeAsync, None, None);
 	} else {
 		cw->decorated = false;
 	}
@@ -273,7 +301,7 @@ void create_decorations(struct cwindow *cw) {
 	fprintf(stderr, "decorations created\n");
 }
 
-void pix_mask(Window win, int x, int y, int w, int h, bool top) {
+static void pix_mask(Window win, int x, int y, int w, int h, bool top) {
 
 	/* create rounded corners */
 	/* mask for drawing to */
@@ -310,7 +338,7 @@ void pix_mask(Window win, int x, int y, int w, int h, bool top) {
 	XFreePixmap(display, mask);
 }
 
-void cwindow_save(struct cwindow *cw) {
+static void cwindow_save(struct cwindow *cw) {
 	/* add client window to top of managed window stack */
 	cw->next = cw_stack;
 	cw_stack = cw;
@@ -319,7 +347,7 @@ void cwindow_save(struct cwindow *cw) {
 	f_stack = cw;
 }
 
-void cwindow_del(struct cwindow *cw) {
+static void cwindow_del(struct cwindow *cw) {
 	/* remove window from the cwindow list */
 	if (cw == cw_stack) {
 		cw_stack = cw_stack->next;
@@ -344,7 +372,7 @@ void cwindow_del(struct cwindow *cw) {
 	
 }
 
-void cwindow_focus(struct cwindow *cw) {
+static void cwindow_focus(struct cwindow *cw) {
 	if (cw != NULL && focused != NULL) {
 		fprintf(stderr, "unfocus color changed\n");
 		change_color(focused, conf.u_color);
@@ -372,7 +400,7 @@ void cwindow_focus(struct cwindow *cw) {
 	}
 }
 
-void change_color(struct cwindow *cw, unsigned long color) {
+static void change_color(struct cwindow *cw, unsigned long color) {
 	if (cw->decorated) {
 		fprintf(stderr, "color changed\n");
 		XSetWindowBackground(display, cw->dec, color);
@@ -380,7 +408,7 @@ void change_color(struct cwindow *cw, unsigned long color) {
 	}
 }
 
-int send_icccm(struct cwindow *cw, Atom atom) {
+static int send_icccm(struct cwindow *cw, Atom atom) {
 	int n;
     Atom *protocols;
     int exists = 0;
@@ -405,7 +433,7 @@ int send_icccm(struct cwindow *cw, Atom atom) {
 	return exists;
 }
 
-struct cwindow *get_cwindow(Window w) {
+static struct cwindow *get_cwindow(Window w) {
 	for (struct cwindow *tmp = cw_stack; tmp != NULL; tmp=tmp->next) {
 		if (tmp->window == w) {
 			return tmp;
@@ -415,6 +443,154 @@ struct cwindow *get_cwindow(Window w) {
 	}
 	
 	return NULL;
+}
+
+static void handle_focus_cardinal(long *data) {
+	fprintf(stderr, "cardinal focus event:\n");
+	/* temporary cwindows for loop and focusing */
+	struct cwindow *curr, *next_to_focus;
+
+	curr = cw_stack;
+	next_to_focus = NULL;
+	/* for keeping track of the distance */
+	int min = 999999;
+	/* loop through cwindows */
+	while(curr != NULL) {
+		int dist = distance(focused, curr);
+		switch (data[1]) {
+			case north :
+				fprintf(stderr, "\tdir: north\n");
+				if (curr->dims.y < focused->dims.y && dist < min) {
+					min = dist;
+					next_to_focus = curr;
+				}
+				break;
+			case south :
+				fprintf(stderr, "\tdir: south\n");
+				if (curr->dims.y > focused->dims.y && dist < min) {
+					min = dist;
+					next_to_focus = curr;
+				}
+				break;
+			case east :
+				fprintf(stderr, "\tdir: east\n");
+				if (curr->dims.x > focused->dims.x && dist < min) {
+					min = dist;
+					next_to_focus = curr;
+				}
+				break;
+			case west :
+				fprintf(stderr, "\tdir: west\n");
+				if (curr->dims.x < focused->dims.x && dist < min) {
+					min = dist;
+					next_to_focus = curr;
+				}
+				break;
+			default :
+				break;
+		}
+		/* go to next cwindow */
+		curr = curr->next;
+	}
+
+	if (next_to_focus == NULL) {
+		fprintf(stderr, "\tno windows found\n");
+	} else {
+		fprintf(stderr, "\tfocusing next window\n");
+		cwindow_focus(next_to_focus);
+	}
+}
+
+static void handle_move_relative(long *data) {
+	fprintf(stderr, "move relative event:\n");
+	fprintf(stderr, "\tx:%d y:%d\n", data[1], data[2]);
+
+	if (focused == NULL) {
+		return;
+	}
+
+	if (focused->decorated) {
+		XMoveWindow(display, focused->window, focused->dims.x + data[1] + conf.b_width, focused->dims.y + data[2] + conf.b_width + conf.t_height);
+		XMoveWindow(display, focused->dec, focused->dims.x + data[1], focused->dims.y + data[2]);
+	} else {
+		XMoveWindow(display, focused->window, focused->dims.x + data[1], focused->dims.y + data[2]);
+	}
+}
+
+static void handle_move_to(long *data) {
+	fprintf(stderr, "move to event:\n");
+	fprintf(stderr, "\tx:%d y:%d\n", data[1], data[2]);
+	
+	if (focused == NULL) {
+		return;
+	}
+
+	if (focused->decorated) {
+		XMoveWindow(display, focused->window, data[1] + conf.b_width, data[2] + conf.b_width + conf.t_height);
+		XMoveWindow(display, focused->dec, data[1], data[2]);
+	} else {
+		XMoveWindow(display, focused->window, data[1], data[2]);
+	}
+}
+
+static void handle_resize_relative(long *data) {
+	fprintf(stderr, "resize relative event:\n");
+
+	if (focused == NULL) {
+		return;
+	}
+
+	int x, y, w, h;
+	switch (data[2]) {
+		case north :
+			x = focused->dims.x;
+			y = focused->dims.y - data[1];
+			w = focused->dims.w;
+			h = focused->dims.h + data[1];
+			break;
+		case south :
+			x = focused->dims.x;
+			y = focused->dims.y;
+			w = focused->dims.w;
+			h = focused->dims.h + data[1];
+			break;
+		case east :
+			x = focused->dims.x;
+			y = focused->dims.y;
+			w = focused->dims.w + data[1];
+			h = focused->dims.h;
+			break;
+		case west :
+			x = focused->dims.x - data[1];
+			y = focused->dims.y;
+			w = focused->dims.w + data[1];
+			h = focused->dims.h;
+			break;
+		default :
+			break;
+	}
+	XMoveResizeWindow(display, focused->window, x, y, w, h);
+	focused->dims.x = x;
+	focused->dims.y = y;
+	focused->dims.w = w;
+	focused->dims.h = h;
+	/* destroy decorations if they exist */
+	if (focused->decorated) {
+		XDestroyWindow(display, focused->dec);
+	}
+	create_decorations(focused);
+	XRaiseWindow(display, focused->window);
+}
+
+static void handle_exit(long *data) {
+	running = false;
+}
+
+static int distance(struct cwindow *a, struct cwindow *b) {
+	int x_diff, y_diff;
+    x_diff = a->dims.x - b->dims.x;
+    y_diff = a->dims.y - b->dims.y;
+    return pow(x_diff, 2) + pow(y_diff, 2);
 }
 
 int main(int argc, char *argv[]) {
