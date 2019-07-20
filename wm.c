@@ -10,7 +10,6 @@
 /* my includes */
 #include "structs.h"
 #include "ipc.h"
-#include "globals.h"
 
 /* display struct */
 static Display *display;

@@ -54,4 +54,6 @@ enum atoms_wm {
     WMTakeFocus,
     WMLast,
 };
+
+#define HELIUMC_EVENT "heliumc_event"
 #endif

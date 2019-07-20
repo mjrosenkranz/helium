@@ -2,10 +2,10 @@
 # -l is the libraries needed
 all:
 	cc wm.c structs.h ipc.h globals.h -o helium -lX11 -lXext -lm
-	cc control.c ipc.h globals.h -o heliumc -lX11
+	cc control.c ipc.h structs.h -o heliumc -lX11
 
 r:
-	cc resources.c globals.h -o resman -lX11
+	cc resources.c resources.h -o resman -lX11
 
 cr:
 	rm resman
