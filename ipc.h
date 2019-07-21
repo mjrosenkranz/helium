@@ -8,6 +8,7 @@ enum ipc_command {
 	ipc_move_to, /* takes x and y to move to */
 	ipc_resize_relative, /* takes an amount and a direction */
 	ipc_exit, /* quit the wm */
+	ipc_reload,
 	/*ipc_fullscreen,
 	ipc_center, */
 	ipc_last /* the length of the enum */
@@ -29,4 +30,5 @@ enum direction {
 	dir_last /* the length of the enum */
 };
 
+#define HELIUMC_EVENT "heliumc_event"
 #endif

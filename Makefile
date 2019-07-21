@@ -1,14 +1,8 @@
 # compiles the program. -o is the ouput binary name
 # -l is the libraries needed
 all:
-	cc wm.c structs.h ipc.h globals.h -o helium -lX11 -lXext -lm
-	cc control.c ipc.h structs.h -o heliumc -lX11
-
-r:
-	cc resources.c resources.h -o resman -lX11
-
-cr:
-	rm resman
+	cc -g wm.c structs.h ipc.h resources.h -o helium -lX11 -lXext -lm
+	cc -g control.c ipc.h structs.h -o heliumc -lX11
 
 # deletes excess files
 clean:

@@ -3,13 +3,16 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
+#include <string.h>
 /*libraries */
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <X11/extensions/shape.h>
+#include <X11/Xresource.h>
 /* my includes */
 #include "structs.h"
 #include "ipc.h"
+#include "resources.h"
 
 /* display struct */
 static Display *display;
@@ -17,10 +20,8 @@ static Display *display;
 static int screen_num, disp_width, disp_height;
 /* root window */
 static Window root, check;
-/* struct for storing configuration in */
-struct config conf;
 /* manages the list of existing windows and focus order*/
-struct cwindow *cw_stack = NULL, *f_stack = NULL;
+struct cwindow *cw_stack[NUM_TAGS], *f_stack = NULL;
 /* currently focused window */
 struct cwindow *focused = NULL;
 /* atom for focus */
@@ -52,9 +53,13 @@ static struct cwindow *get_cwindow(Window w);
 static void handle_focus_cardinal(long *data);
 static void handle_move_relative(long *data);
 static void handle_move_to(long *data);
+static void cwindow_move(struct cwindow *cw, int dx, int dy);
 static void handle_resize_relative(long *data);
 static void handle_exit(long *data);
+static void handle_reload(long *data);
 static int distance(struct cwindow *a, struct cwindow *b);
+static void load_resource(XrmDatabase db, struct pref *item);
+static void conf_init();
 
 /* array of functions for cwindow events */
 static void (*event_handler[LASTEvent])(XEvent *ev) = {
@@ -74,6 +79,23 @@ static void (*client_event_handler[ipc_last])(long *data) = {
 	[ipc_move_to]			= handle_move_to,
 	[ipc_resize_relative]	= handle_resize_relative,
 	[ipc_exit]				= handle_exit,
+	[ipc_reload]			= handle_reload,
+};
+/* conf variables */
+int conf_b_width	= DEFAULT_B_WIDTH;
+int conf_radius		= DEFAULT_RADIUS;
+int conf_t_height	= DEFAULT_T_HEIGHT;
+long conf_u_color	= DEFAULT_U_COLOR;
+long conf_f_color	= DEFAULT_F_COLOR;
+char *conf_font		= DEFAULT_FONT;
+/* array for finding preferences in xresources */
+struct pref resource[] = {
+	{"border_width", INT, &conf_b_width},
+	{"border_radius", INT, &conf_radius},
+	{"title_height", INT, &conf_t_height},
+	{"focused_color", COLOR, &conf_f_color},
+	{"unfocused_color", COLOR, &conf_u_color},
+	{"font", STRING, &conf_font},
 };
 
 static void open_display() {
@@ -90,12 +112,6 @@ static void open_display() {
 	check = XCreateSimpleWindow(display, root, 0, 0, 1, 1, 0, 0, 0);
 	/* get events for the root window */
 	XSelectInput(display, root, SubstructureRedirectMask|SubstructureNotifyMask|ButtonPressMask|Button1Mask);
-	/* default config stuff */
-	conf.b_width = DEFAULT_B_WIDTH;
-	conf.radius = DEFAULT_RADIUS;
-	conf.t_height = DEFAULT_T_HEIGHT;
-	conf.u_color = DEFAULT_U_COLOR;
-	conf.f_color = DEFAULT_F_COLOR;
 	/* ewmh */
 	net_atom[NetSupported]           = XInternAtom(display, "_NET_SUPPORTED", False);
     net_atom[NetNumberOfDesktops]    = XInternAtom(display, "_NET_NUMBER_OF_DESKTOPS", False);
@@ -120,6 +136,13 @@ static void open_display() {
 	XChangeProperty(display, root, net_atom[NetSupported], XA_ATOM, 32, PropModeReplace, (unsigned char *) net_atom, NetLast);
 	XChangeProperty(display, check, net_atom[NetWMCheck], XA_WINDOW, 32, PropModeReplace, (unsigned char *) &check, 1);
 	XChangeProperty(display, root, net_atom[NetWMCheck], XA_WINDOW, 32, PropModeReplace, (unsigned char *) &check, 1);
+	/* load resources */
+	conf_init();
+	fprintf(stderr, "resources loaded\n");
+	/* initialize the tag pointers to null */
+	for (int i = 0; i < NUM_TAGS; i++) {
+		cw_stack[i] = NULL;
+	}
 }
 
 static void close_display() {
@@ -258,15 +281,11 @@ static void manage_window(Window w, XWindowAttributes *wa) {
 	cw->dims.h = wa->height;
 
 	create_decorations(cw);
-	/* map window and decoration */
-	XMapWindow(display, cw->window);
 	/* focus the new window */
 	cwindow_focus(cw);
 	/* save to stack */
 	cwindow_save(cw);
 
-	/* raise the window */
-	XRaiseWindow(display, cw->window);
 	/* subscribe to window events */
 	XSelectInput(display, cw->window, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
 }
@@ -275,13 +294,14 @@ static void create_decorations(struct cwindow *cw) {
 	/* calculate dummy window dimentions */
 	int x = cw->dims.x;
 	int y = cw->dims.y;
-	int w = cw->dims.w + 2 * conf.b_width;
-	int h = cw->dims.h + 2 * conf.b_width + conf.t_height;
-
-	if (conf.b_width > 0 || conf.t_height > 0) {
-		XMoveWindow(display, cw->window, x + conf.b_width, y + conf.b_width + conf.t_height);
+	int w = cw->dims.w + 2 * conf_b_width;
+	int h = cw->dims.h + 2 * conf_b_width + conf_t_height;
+	/* calculate dummy window dimentions */
+ 
+	if (conf_b_width > 0 || conf_t_height > 0) {
+		XMoveWindow(display, cw->window, x + conf_b_width, y + conf_b_width + conf_t_height);
 		/* create the border window */
-		Window dec = XCreateSimpleWindow(display, root, x, y, w, h, 0, conf.f_color, conf.f_color);
+		Window dec = XCreateSimpleWindow(display, root, x, y, w, h, 0, conf_f_color, conf_f_color);
 		pix_mask(dec, x, y, w, h, false);
 		/* assign the border window */
 		cw->dec = dec;
@@ -296,19 +316,23 @@ static void create_decorations(struct cwindow *cw) {
 		cw->decorated = false;
 	}
 
-	pix_mask(cw->window, cw->dims.x, cw->dims.y, cw->dims.w, cw->dims.h, conf.t_height > 0);
+	pix_mask(cw->window, cw->dims.x, cw->dims.y, cw->dims.w, cw->dims.h, conf_t_height > 0 && conf_t_height > conf_radius);
+	/* map window and decoration */
+	XMapWindow(display, cw->window);
+	/* raise the window */
+	XRaiseWindow(display, cw->window);
+	
 	fprintf(stderr, "decorations created\n");
 }
 
 static void pix_mask(Window win, int x, int y, int w, int h, bool top) {
 
 	/* create rounded corners */
-	/* mask for drawing to */
 	Pixmap mask = XCreatePixmap(display, win, w, h, 1);
 	/* graphics context */
 	GC gc = XCreateGC(display, mask, 0, 0);
 
-	int diam = 2 * conf.radius;
+	int diam = 2 * conf_radius;
 	/* make the window mask all black */
 	XSetForeground(display, gc, 0);
 	XFillRectangle(display, mask, gc, 0, 0, w, h);
@@ -328,10 +352,10 @@ static void pix_mask(Window win, int x, int y, int w, int h, bool top) {
 	XFillArc(display, mask, gc, w - diam, h - diam,
 			diam, diam, 64 * 270, 64 * 90);
 	/* middle rectangle */
-	XFillRectangle(display, mask, gc, conf.radius, 0, w - diam, h);
+	XFillRectangle(display, mask, gc, conf_radius, 0, w - diam, h);
 	/* left and right rectangles */
-	XFillRectangle(display, mask, gc, 0, conf.radius, conf.radius, h - diam);
-	XFillRectangle(display, mask, gc, w - conf.radius, conf.radius, conf.radius, h - diam);
+	XFillRectangle(display, mask, gc, 0, conf_radius, conf_radius, h - diam);
+	XFillRectangle(display, mask, gc, w - conf_radius, conf_radius, conf_radius, h - diam);
 	/* combine everything, masks out area painted black */
 	XShapeCombineMask(display, win, ShapeBounding, 0, 0, mask, ShapeSet);
 	XFreePixmap(display, mask);
@@ -339,8 +363,8 @@ static void pix_mask(Window win, int x, int y, int w, int h, bool top) {
 
 static void cwindow_save(struct cwindow *cw) {
 	/* add client window to top of managed window stack */
-	cw->next = cw_stack;
-	cw_stack = cw;
+	cw->next = cw_stack[0];
+	cw_stack[0] = cw;
 	/* add client window to top of focused window stack */
 	cw->f_next = f_stack;
 	f_stack = cw;
@@ -348,10 +372,10 @@ static void cwindow_save(struct cwindow *cw) {
 
 static void cwindow_del(struct cwindow *cw) {
 	/* remove window from the cwindow list */
-	if (cw == cw_stack) {
-		cw_stack = cw_stack->next;
+	if (cw == cw_stack[0]) {
+		cw_stack[0] = cw_stack[0]->next;
 	} else {
-		struct cwindow *tmp = cw_stack;
+		struct cwindow *tmp = cw_stack[0];
 		while (tmp != NULL && tmp->next != cw)
 			tmp = tmp->next;
 		
@@ -374,13 +398,13 @@ static void cwindow_del(struct cwindow *cw) {
 static void cwindow_focus(struct cwindow *cw) {
 	if (cw != NULL && focused != NULL) {
 		fprintf(stderr, "unfocus color changed\n");
-		change_color(focused, conf.u_color);
+		change_color(focused, conf_u_color);
 		/* send message to focus client */
 		send_icccm(cw, wm_atom[WMTakeFocus]);
 	}
 	if (cw != NULL) {
 		/* change color */
-		change_color(cw, conf.f_color);
+		change_color(cw, conf_f_color);
 		/* remove focus from old window */
 		XDeleteProperty(display, root, net_atom[NetActiveWindow]);
 		/* set focused client variable */
@@ -433,11 +457,13 @@ static int send_icccm(struct cwindow *cw, Atom atom) {
 }
 
 static struct cwindow *get_cwindow(Window w) {
-	for (struct cwindow *tmp = cw_stack; tmp != NULL; tmp=tmp->next) {
-		if (tmp->window == w) {
-			return tmp;
-		} else if (tmp->decorated && tmp->dec == w) {
-			return tmp;
+	for (int i = 0; i < NUM_TAGS; i++) {
+		for (struct cwindow *tmp = cw_stack[i]; tmp != NULL; tmp=tmp->next) {
+			if (tmp->window == w) {
+				return tmp;
+			} else if (tmp->decorated && tmp->dec == w) {
+				return tmp;
+			}
 		}
 	}
 	
@@ -449,7 +475,7 @@ static void handle_focus_cardinal(long *data) {
 	/* temporary cwindows for loop and focusing */
 	struct cwindow *curr, *next_to_focus;
 
-	curr = cw_stack;
+	curr = cw_stack[0];
 	next_to_focus = NULL;
 	/* for keeping track of the distance */
 	int min = 999999;
@@ -508,12 +534,7 @@ static void handle_move_relative(long *data) {
 		return;
 	}
 
-	if (focused->decorated) {
-		XMoveWindow(display, focused->window, focused->dims.x + data[1] + conf.b_width, focused->dims.y + data[2] + conf.b_width + conf.t_height);
-		XMoveWindow(display, focused->dec, focused->dims.x + data[1], focused->dims.y + data[2]);
-	} else {
-		XMoveWindow(display, focused->window, focused->dims.x + data[1], focused->dims.y + data[2]);
-	}
+	cwindow_move(focused, data[1] + focused->dims.x, data[2] + focused->dims.y);
 }
 
 static void handle_move_to(long *data) {
@@ -524,11 +545,19 @@ static void handle_move_to(long *data) {
 		return;
 	}
 
-	if (focused->decorated) {
-		XMoveWindow(display, focused->window, data[1] + conf.b_width, data[2] + conf.b_width + conf.t_height);
-		XMoveWindow(display, focused->dec, data[1], data[2]);
+	cwindow_move(focused, data[1], data[2]);
+}
+
+static void cwindow_move(struct cwindow *cw, int dx, int dy) {
+	if (cw->decorated) {
+		XMoveWindow(display, cw->window, dx + conf_b_width, dy + conf_b_width + conf_t_height);
+		XMoveWindow(display, cw->dec, dx, dy);
+		cw->dims.x = dx + conf_b_width;
+		cw->dims.y = dy + conf_b_width + conf_t_height;
 	} else {
-		XMoveWindow(display, focused->window, data[1], data[2]);
+		XMoveWindow(display, cw->window, dx, dy);
+		cw->dims.x = dx;
+		cw->dims.y = dy;
 	}
 }
 
@@ -585,11 +614,95 @@ static void handle_exit(long *data) {
 	running = false;
 }
 
+static void handle_reload(long *data) {
+	/*XrmDatabase srcdb = XrmGetStringDatabase(XResourceManagerString(display));
+	XrmMergeDatabases(srcdb, &db);
+	struct pref *p;
+	for (p = resource; p < resource + (sizeof(resource) / sizeof(struct pref)); p++) {
+		load_resource(p);
+	}*/
+
+	conf_init();
+
+
+	for (int i = 0; i < NUM_TAGS; i++) {
+		for (struct cwindow *tmp = cw_stack[i]; tmp != NULL; tmp=tmp->next) {
+			tmp->decorated = false;
+			XUnmapWindow(display, tmp->dec);
+			XDestroyWindow(display, tmp->dec);
+			create_decorations(tmp);
+		}
+	}
+}
+
 static int distance(struct cwindow *a, struct cwindow *b) {
 	int x_diff, y_diff;
     x_diff = a->dims.x - b->dims.x;
     y_diff = a->dims.y - b->dims.y;
     return pow(x_diff, 2) + pow(y_diff, 2);
+}
+
+static void load_resource(XrmDatabase db, struct pref *item) {
+
+	/* temporary variables variables used to assign to the config */
+	char **sdst = item->dst;
+	int *idst = item->dst;
+	long *ldst = item->dst;
+
+	/* the location in memory of the value we are looking for */
+	XrmValue value;
+	/* what we are searching with */
+	char class[42], name[42];
+	/* the type of the returned value */
+	char *return_type;
+	/* create the search criteria */
+	snprintf(name, 42, "helium.%s", item->name);
+	snprintf(class, 42, "Helium.%s", item->name);
+	/* get the resource value */
+	XrmGetResource(db, name, class, &return_type, &value);
+	/* assign pointer to the correct value depending on type */
+	switch (item->format) {
+		case STRING:
+			*sdst = value.addr;
+			fprintf(stderr, "%s = %s\n", name, *sdst);
+			break;
+		case INT:
+			*idst = strtoul(value.addr, NULL, 10);
+			fprintf(stderr, "%s = %d\n", name, *idst);
+			break;
+		case COLOR:
+			*ldst = strtoul(&value.addr[1], NULL, 16);
+			fprintf(stderr, "%s = %x\n", name, *ldst);
+			break;
+	}
+}
+
+static void conf_init() {
+	XrmInitialize();
+	/* string and database for resources */
+	char *resources;
+	XrmDatabase db;
+	/* load resouces into a string */
+	resources = XResourceManagerString(display);
+
+	if (resources == NULL) {
+		fprintf(stderr, "no resources found, please xrdb merge\nusing default values\n");
+		//exit(EXIT_FAILURE);
+		return;
+	}
+
+	db = XrmGetStringDatabase(resources);
+
+
+	struct config_item *curr;
+
+	struct pref *p;
+
+	for (p = resource; p < resource + (sizeof(resource) / sizeof(struct pref)); p++) {
+		load_resource(db, p);
+	}
+
+	//XrmDestroyDatabase(db);
 }
 
 int main(int argc, char *argv[]) {

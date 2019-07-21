@@ -20,12 +20,8 @@ struct cwindow {
 	struct cwindow_dims dims;
 	/* next cwindow in list */
 	struct cwindow *next, *f_next;
-};
-
-struct config {
-	/* configured window border */
-	int b_width, t_height, radius;
-	unsigned long u_color, f_color;
+	/* tag to which the window belongs */
+	int tag;
 };
 
 enum atoms_net {
@@ -55,5 +51,12 @@ enum atoms_wm {
     WMLast,
 };
 
-#define HELIUMC_EVENT "heliumc_event"
+#define DEFAULT_B_WIDTH 5
+#define DEFAULT_RADIUS 5
+#define DEFAULT_T_HEIGHT 10
+#define DEFAULT_U_COLOR 0x3f3f3f
+#define DEFAULT_F_COLOR 0x40E446
+#define DEFAULT_FONT "def font haha"
+#define NUM_TAGS 9
+
 #endif

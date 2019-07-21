@@ -8,7 +8,6 @@
 #include <X11/Xatom.h>
 /* my headers */
 #include "ipc.h"
-#include "globals.h"
 
 static void usage();
 static void send_event();
@@ -25,6 +24,7 @@ static struct command cmds[] = {
 	{"move_to", ipc_move_to, 2, false},
 	{"resize_relative", ipc_resize_relative, 2, true},
 	{"exit", ipc_exit, 0, false},
+	{"reload", ipc_reload, 0, false},
 };
 
 static void usage() {

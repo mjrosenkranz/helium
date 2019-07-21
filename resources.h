@@ -17,18 +17,11 @@ enum element_format {
 	COLOR,
 	STRING,
 };
-/* union data structure for the config */
-union config {
-	int i;
-	long c;
-	char s[50];
-};
-/* struct defining a config item */
-struct config_item {
+/* struct for keeping track of prefernces set in xresources */
+struct pref {
 	char *name;
-	enum config_elements item;
 	enum element_format format;
-	union config *conf;
+	void *dst;
 };
 
 
