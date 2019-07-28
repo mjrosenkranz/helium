@@ -22,6 +22,7 @@ struct cwindow {
 	struct cwindow *next, *f_next;
 	/* tag to which the window belongs */
 	int tag;
+	char title[512];
 };
 
 enum atoms_net {

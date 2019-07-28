@@ -301,7 +301,31 @@ static void handle_button_press(XEvent *ev) {
 }
 
 static void handle_property_notify(XEvent *ev) {
-	/* use thos later for changing the title */
+	XPropertyEvent *pev = &ev->xproperty;
+	struct cwindow *cw = get_cwindow(pev->window);
+	if (cw == NULL) {
+		return;
+	}
+
+	if (pev->atom == net_atom[NetWMName]) {
+		XTextProperty tp;
+		if (!XGetTextProperty(display, cw->window, &tp, net_atom[NetWMName])) {
+			fprintf(stderr, "unable to change name\n");
+			return;
+		}
+		char placeholder[512];
+		/* copy title to placeholder */
+		strncpy(placeholder, (char *)tp.value, sizeof(placeholder) - 5);
+		/* add tag number to cwindow title */
+		sprintf(cw->title, "%d -%s", cw->tag, placeholder);
+		XFree(tp.value);
+
+		if (cw == focused) {
+			draw_text(cw, conf_u_color);
+		} else {
+			draw_text(cw, conf_f_color);
+		}
+	}
 
 	fprintf(stderr, "property notify handled\n");
 }
@@ -327,7 +351,6 @@ static void handle_expose(XEvent *ev) {
 }
 
 static void manage_window(Window w, XWindowAttributes *wa) {
-	/* TODO check if the window is a dock */
 	/* create the client window struct */
 	struct cwindow *cw;
 	cw = malloc(sizeof(struct cwindow));
@@ -452,11 +475,11 @@ static void draw_text(struct cwindow *cw, long text_color) {
 		return;
 	}
 
+
 	/* convert color to xftcolor */
 	XColor x_color;
 	XRenderColor r_color;
 	XftColor xft_color;
-
 	x_color.pixel = text_color;
 	XQueryColor(display, DefaultColormap(display, screen_num), &x_color);
 	r_color.red = x_color.red;
@@ -464,21 +487,23 @@ static void draw_text(struct cwindow *cw, long text_color) {
 	r_color.blue = x_color.blue;
 	r_color.alpha = 0xffff;
 
+    /* shorten text if need be */
 	XGlyphInfo extents;
-	int x, y;
-	XftTextExtentsUtf8(display, font, (XftChar8 *)"hello", strlen("hello"), &extents);
+	int x, y, len;
+	for (len = strlen(cw->title); len >= 0; len--) {
+		XftTextExtentsUtf8(display, font, (XftChar8 *)cw->title, len, &extents);
+		if (extents.width < cw->dims.w) {
+			break;
+		}
+	}
     y = (conf_t_height / 2) + ((extents.y) / 2);
     x = (cw->dims.w - extents.width) / 2;
-    /* create the tag text */
-	char tag_text[10];
-	sprintf(tag_text, "tag: %d", cw->tag);
 
     XftColorAllocValue(display, DefaultVisual(display, screen_num), DefaultColormap(display, screen_num), &r_color, &xft_color);
 
 	XClearWindow(display, cw->dec);
 	draw = XftDrawCreate(display, cw->dec, DefaultVisual(display, screen_num), DefaultColormap(display, screen_num)); 
-	XftDrawStringUtf8(draw, &xft_color, font, x, y, tag_text, strlen(tag_text));
-	fprintf(stderr, "%d\n", strlen(tag_text));
+	XftDrawStringUtf8(draw, &xft_color, font, x, y, cw->title, len);
 
 	XftDrawDestroy(draw);
 	XftColorFree(display, DefaultVisual(display, screen_num), DefaultColormap(display, screen_num), &xft_color);
@@ -794,6 +819,8 @@ static void handle_assign_tag(long *data) {
 	}
 	int new_tag = data[1];
 	int tag = focused->tag;
+	/* change tag in title */
+	draw_text(focused, conf_u_color);
 
 	if (new_tag > NUM_TAGS || new_tag < 0) {
 		fprintf(stderr, "tag %d does not exist\n", new_tag);
