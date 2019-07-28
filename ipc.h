@@ -9,6 +9,9 @@ enum ipc_command {
 	ipc_resize_relative, /* takes an amount and a direction */
 	ipc_exit, /* quit the wm */
 	ipc_reload,
+	ipc_assign_tag,
+	ipc_toggle_tag,
+	ipc_close_client,
 	/*ipc_fullscreen,
 	ipc_center, */
 	ipc_last /* the length of the enum */

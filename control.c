@@ -11,11 +11,6 @@
 
 static void usage();
 static void send_event();
-/* TODO
- * - cardinal focus
- * - focus list only comprised of visible windows, just a list
- * - window list is array of ll for each tag
- */
 
 /* array of ipc commands */
 static struct command cmds[] = {
@@ -25,6 +20,9 @@ static struct command cmds[] = {
 	{"resize_relative", ipc_resize_relative, 2, true},
 	{"exit", ipc_exit, 0, false},
 	{"reload", ipc_reload, 0, false},
+	{"tag", ipc_assign_tag, 1, false},
+	{"toggle_tag", ipc_toggle_tag, 1, false},
+	{"close", ipc_close_client, 0, false},
 };
 
 static void usage() {
