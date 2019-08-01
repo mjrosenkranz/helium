@@ -1,0 +1,33 @@
+# focus in given direction
+super + {h, j, k, l}
+	heliumc focus {west, south, north, east}
+# move window in given direction
+super + shift + {h, j, k, l}
+	heliumc move_relative {-20 0, 0 20, 0 -20, 20 0}
+# move given side out
+super + {Left, Down, Up, Right}
+	heliumc resize_relative 20 {west, south, north, east}
+# move given side in
+super + shift + {Left, Down, Up, Right}
+	heliumc resize_relative -20 {east, north, south, west}
+# exit session
+super + Escape
+	heliumc exit
+# reload xresources
+super + r
+	heliumc reload
+# assign focused window to tag by number
+super + {1-8}
+	heliumc tag {1-8}
+# toggle visibility of given tag
+super + shift + {1-8}
+	heliumc toggle_tag {1-8}
+# close current window
+super + w
+	heliumc close
+# open terminal
+super + Return
+	urxvt
+# reload sxhkdrc
+super + shift + r
+	pkill -USR1 -x sxhkd
