@@ -2,7 +2,7 @@ X11_INCLUDE?=/usr/include
 PREFIX?=/usr
 
 override CFLAGS +=-s -I${X11_INCLUDE}
-override LDFLAGS +=-L${PREFIX}/lib -lxcb -lxcb-ewmh
+override LDFLAGS +=-L${PREFIX}/lib -lxcb -lxcb-ewmh -lxcb-shape
 #-lxcb-randr
 
 SRC = $(wildcard *.c)
@@ -12,7 +12,7 @@ all: helium
 
 # compile just the window manager
 helium: $(OBJ)
-	$(CC) $(OBJ) -o $@ $(CFLAGS) $(LDFLAGS)
+	$(CC) $(OBJ) -g -o $@ $(CFLAGS) $(LDFLAGS)
 	rm $(OBJ)
 
 # compile all files required for linking

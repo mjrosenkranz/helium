@@ -25,7 +25,7 @@ handle_map_request(xcb_generic_event_t *event) {
 	xcb_map_request_event_t *ev = (xcb_map_request_event_t *) event;
 	xcb_window_t w = ev->window;
 	// map window
-	xcb_map_window(conn, w);
+	manage_new_client(w);
 	fprintf(stderr, "map request handled\n");
 	xcb_flush(conn);
 }

@@ -14,7 +14,7 @@ bool open_connection(void) {
 	int scrn_num;
 	// open display
 	conn = xcb_connect(NULL, &scrn_num);
-	fprintf(stderr, "%d\n", scrn_num);
+	fprintf(stderr, "screen %d\n", scrn_num);
 	// check if there is an error in opening the display
 	if (xcb_connection_has_error(conn)) {
 		fprintf(stderr, "cannot connect to display\n");
@@ -52,6 +52,10 @@ bool open_connection(void) {
 	}
 	// request ewmh from xcb
 	xcb_intern_atom_cookie_t *cookie = xcb_ewmh_init_atoms(conn, ewmh);
+	if(!xcb_ewmh_init_atoms_replies(ewmh, cookie, (void *)0)){
+        fprintf(stderr,"%s\n","xcb_ewmh_init_atoms_replies:faild.");
+        exit(1);
+    }
 
 	xcb_ewmh_set_wm_pid(ewmh, screen->root, getpid());
 	xcb_ewmh_set_wm_name(ewmh, screen->root, 6, "helium");
