@@ -4,12 +4,16 @@
 #include <unistd.h>
 
 #include "xcb.h"
+#include "conf.h"
+#include "vec.h"
 
 xcb_connection_t *conn;
 xcb_ewmh_connection_t *ewmh;
 xcb_screen_t *screen;
+vector *tags[NUM_TAGS];
 
-bool open_connection(void) {
+bool
+open_connection() {
 	// number of the screen
 	int scrn_num;
 	// open display
@@ -94,5 +98,16 @@ bool open_connection(void) {
 		fprintf(stderr,"%s\n","request worked");
 	}
 
+
+	// create tags
+	for (int i = 0; i < NUM_TAGS; i++) {
+		tags[i] = create_vector();
+	}
+
 	return true;
+}
+
+void
+close_connection() {
+	fprintf(stderr, "%s\n", "closing connection");
 }

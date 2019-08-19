@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <xcb/xcb.h>
+#include <xcb/xproto.h>
 
 #include "handler.h"
 #include "xcb.h"
@@ -25,39 +26,64 @@ handle_map_request(xcb_generic_event_t *event) {
 	xcb_map_request_event_t *ev = (xcb_map_request_event_t *) event;
 	xcb_window_t w = ev->window;
 	// map window
-	manage_new_client(w);
+	if (get_client(w) == NULL) {
+		manage_new_client(w);
+	}
 	fprintf(stderr, "map request handled\n");
 	xcb_flush(conn);
 }
+
 void
 handle_unmap_notify(xcb_generic_event_t *event) {
+	// parse event
+	xcb_unmap_notify_event_t *ev = (xcb_unmap_notify_event_t *) event;
+	// find client
+	client *tmp = get_client(ev->window);
+	if (tmp == NULL) {
+		fprintf(stderr, "%s\n", "window not found");
+		return;
+	}
+	// unmap window
+	xcb_unmap_window(conn, tmp->dec);
+	fprintf(stderr, "%s\n", "client unmapped");
+	xcb_flush(conn);
 	fprintf(stderr, "unmap notify handled\n");
 }
+
 void
 handle_configure_notify(xcb_generic_event_t *event) {
 	fprintf(stderr, "configure notify handled\n");
 }
+
 void
 handle_configure_request(xcb_generic_event_t *event) {
 	fprintf(stderr, "configure request handled\n");
 }
+
 void
 handle_client_message(xcb_generic_event_t *event) {
 	fprintf(stderr, "client message handled\n");
 }
+
 void
 handle_button_press(xcb_generic_event_t *event) {
 	fprintf(stderr, "button press handled\n");
 }
+
 void
 handle_property_notify(xcb_generic_event_t *event) {
 	fprintf(stderr, "property notify handled\n");
 }
+
 void
 handle_expose(xcb_generic_event_t *event) {
 	fprintf(stderr, "expose event handled\n");
 }
+
 void
 handle_destroy(xcb_generic_event_t *event) {
+	// parse event
+	xcb_destroy_notify_event_t *ev = (xcb_destroy_notify_event_t *) event;
+	unmanage_client(ev->window);
 	fprintf(stderr, "destroy event handled\n");
 }
