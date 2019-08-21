@@ -17,12 +17,12 @@ enum ipc_command {
 	ipc_last /* the length of the enum */
 };
 
-struct command {
+typedef struct {
 	char *name;
 	enum ipc_command cmd;
 	int num_args;
 	bool dir;
-};
+} command;
 
 /* directions for use with commands */
 enum direction {

@@ -18,11 +18,11 @@ enum element_format {
 	STRING,
 };
 /* struct for keeping track of prefernces set in xresources */
-struct pref {
+typedef struct {
 	char *name;
 	enum element_format format;
 	void *dst;
-};
+} pref;
 
 
 #endif

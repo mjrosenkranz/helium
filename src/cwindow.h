@@ -3,9 +3,11 @@
 
 #include <X11/Xlib.h>
 
-struct cwindow_dims {
+typedef struct cwindow cwindow;
+
+typedef struct {
 	int x, y, w, h;
-};
+} cwindow_dims ;
 
 struct cwindow {
 	/* client window */
@@ -13,9 +15,9 @@ struct cwindow {
 	/* is it dectorated */
 	bool decorated;
 	/* dimentions of the window */
-	struct cwindow_dims dims;
+	cwindow_dims dims;
 	/* next cwindow in list */
-	struct cwindow *next, *f_next;
+	cwindow *next, *f_next;
 	/* tag to which the window belongs */
 	int tag;
 	char title[512];

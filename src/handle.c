@@ -55,7 +55,7 @@ void handle_map_request(XEvent *ev) {
 
 void handle_unmap_notify(XEvent *ev) {
 	XUnmapEvent *uev = &ev->xunmap;
-	struct cwindow *cw;
+	cwindow *cw;
 	cw = get_cwindow(uev->window);
 	if (cw != NULL) {
 		XUnmapWindow(display, cw->dec);
@@ -95,7 +95,7 @@ void handle_client_message(XEvent *ev) {
 void handle_button_press(XEvent *ev) {
 
 	XButtonPressedEvent *bev;
-	struct cwindow *cw;
+	cwindow *cw;
 	int x, y, ocx, ocy, nx, ny, di;
     unsigned int dui;
     Window dummy;
@@ -139,7 +139,7 @@ void handle_button_press(XEvent *ev) {
 
 void handle_property_notify(XEvent *ev) {
 	XPropertyEvent *pev = &ev->xproperty;
-	struct cwindow *cw = get_cwindow(pev->window);
+	cwindow *cw = get_cwindow(pev->window);
 	if (cw == NULL) {
 		return;
 	}
@@ -170,7 +170,7 @@ void handle_property_notify(XEvent *ev) {
 void handle_expose(XEvent *ev) {
 	XExposeEvent *eev;
 	eev = &ev->xexpose;
-	struct cwindow *cw;
+	cwindow *cw;
 
 	cw = get_cwindow(eev->window);
 
@@ -189,7 +189,7 @@ void handle_expose(XEvent *ev) {
 void handle_focus_cardinal(long *data) {
 	fprintf(stderr, "cardinal focus event:\n");
 	/* temporary cwindows for loop and focusing */
-	struct cwindow *curr, *next_to_focus;
+	cwindow *curr, *next_to_focus;
 
 	curr = f_stack;
 	next_to_focus = NULL;
@@ -320,7 +320,7 @@ void handle_reload(long *data) {
 	conf_init();
 
 	for (int i = 0; i < NUM_TAGS; i++) {
-		for (struct cwindow *tmp = cw_stack[i]; tmp != NULL; tmp=tmp->next) {
+		for (cwindow *tmp = cw_stack[i]; tmp != NULL; tmp=tmp->next) {
 			if (focused->decorated) {
 				XDestroyWindow(display, focused->dec);
 			}
@@ -349,7 +349,7 @@ void handle_assign_tag(long *data) {
 	if (focused == cw_stack[tag]) {
 		cw_stack[tag] = cw_stack[tag]->next;
 	} else {
-		struct cwindow *tmp = cw_stack[tag];
+		cwindow *tmp = cw_stack[tag];
 		while (tmp != NULL && tmp->next != focused)
 			tmp = tmp->next;
 		
@@ -393,7 +393,7 @@ void handle_toggle_tag(long *data) {
 		return;
 	}
 	/* do different things depending on if the tag is currently visible */
-	struct cwindow *tmp;
+	cwindow *tmp;
 	if (tag_visible[tag]) {
 		tag_visible[tag] = false;
 		tag_state[tag] = 'i';

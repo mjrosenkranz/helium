@@ -13,7 +13,7 @@ static void usage();
 static void send_event();
 
 /* array of ipc commands */
-static struct command cmds[] = {
+static command cmds[] = {
 	{"focus", ipc_focus_cardinal, 1, true},
 	{"move_relative", ipc_move_relative, 2, false},
 	{"move_to", ipc_move_to, 2, false},
@@ -30,7 +30,7 @@ static void usage() {
 	exit(EXIT_SUCCESS);;
 }
 
-static void send_event(struct command *c, char **args) {
+static void send_event(command *c, char **args) {
 	Display *display;
 	Window root;
 	XEvent xev;

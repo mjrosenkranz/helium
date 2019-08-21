@@ -9,8 +9,8 @@
 
 void manage_window(Window w, XWindowAttributes *wa) {
 	/* create the client window struct */
-	struct cwindow *cw;
-	cw = malloc(sizeof(struct cwindow));
+	cwindow *cw;
+	cw = malloc(sizeof(cwindow));
 	Atom prop, da;
 	unsigned char *prop_ret = NULL;
     int di;
@@ -53,7 +53,7 @@ void manage_window(Window w, XWindowAttributes *wa) {
 	XSelectInput(display, cw->window, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
 }
 
-void create_decorations(struct cwindow *cw) {
+void create_decorations(cwindow *cw) {
 	/* calculate dummy window dimentions */
 	int x = cw->dims.x;
 	int y = cw->dims.y;
@@ -125,7 +125,7 @@ void pix_mask(Window win, int x, int y, int w, int h, bool top) {
 	XShapeCombineMask(display, win, ShapeBounding, 0, 0, mask, ShapeSet);
 	XFreePixmap(display, mask);
 }
-void cwindow_save(struct cwindow *cw, int tag) {
+void cwindow_save(cwindow *cw, int tag) {
 	/* add client window to top of managed window stack */
 	cw->next = cw_stack[tag];
 	cw_stack[tag] = cw;
@@ -134,13 +134,13 @@ void cwindow_save(struct cwindow *cw, int tag) {
 	f_stack = cw;
 }
 
-void cwindow_del(struct cwindow *cw) {
+void cwindow_del(cwindow *cw) {
 	int tag = cw->tag;
 	/* remove window from the cwindow list */
 	if (cw == cw_stack[tag]) {
 		cw_stack[tag] = cw_stack[tag]->next;
 	} else {
-		struct cwindow *tmp = cw_stack[tag];
+		cwindow *tmp = cw_stack[tag];
 		while (tmp != NULL && tmp->next != cw)
 			tmp = tmp->next;
 		
@@ -156,7 +156,7 @@ void cwindow_del(struct cwindow *cw) {
 	if (cw == f_stack) {
 		f_stack = f_stack->f_next;
 	} else {
-		struct cwindow *tmp = f_stack;
+		cwindow *tmp = f_stack;
 		while (tmp != NULL && tmp->f_next != cw)
 			tmp = tmp->f_next;
 		
@@ -166,7 +166,7 @@ void cwindow_del(struct cwindow *cw) {
 	cwindow_focus(focused);
 }
 
-void cwindow_focus(struct cwindow *cw) {
+void cwindow_focus(cwindow *cw) {
 	if (cw != NULL && focused != NULL) {
 		fprintf(stderr, "unfocus color changed\n");
 		change_color(focused, conf_u_color);
@@ -182,7 +182,7 @@ void cwindow_focus(struct cwindow *cw) {
 		XDeleteProperty(display, root, net_atom[NetActiveWindow]);
 		/* move window to the end of the focus stack */
 		if (cw != f_stack && f_stack != NULL) {
-			struct cwindow *tmp = f_stack;
+			cwindow *tmp = f_stack;
 			while (tmp != NULL && tmp->f_next != cw) {
 				tmp = tmp->f_next;
 			}
@@ -208,9 +208,9 @@ void cwindow_focus(struct cwindow *cw) {
 	}
 }
 
-struct cwindow *get_cwindow(Window w) {
+cwindow *get_cwindow(Window w) {
 	for (int i = 0; i < NUM_TAGS; i++) {
-		for (struct cwindow *tmp = cw_stack[i]; tmp != NULL; tmp=tmp->next) {
+		for (cwindow *tmp = cw_stack[i]; tmp != NULL; tmp=tmp->next) {
 			if (tmp->window == w) {
 				return tmp;
 			} else if (tmp->decorated && tmp->dec == w) {
@@ -224,7 +224,7 @@ struct cwindow *get_cwindow(Window w) {
 
 bool is_border(Window w) {
 	for (int i = 0; i < NUM_TAGS; i++) {
-		for (struct cwindow *tmp = cw_stack[i]; tmp != NULL; tmp=tmp->next) {
+		for (cwindow *tmp = cw_stack[i]; tmp != NULL; tmp=tmp->next) {
 			if (tmp->window == w) {
 				return false;
 			} else if (tmp->decorated && tmp->dec == w) {
@@ -235,7 +235,7 @@ bool is_border(Window w) {
 	return false;
 }
 
-void cwindow_move(struct cwindow *cw, int dx, int dy) {
+void cwindow_move(cwindow *cw, int dx, int dy) {
 	if (cw->decorated) {
 		XMoveWindow(display, cw->window, dx + conf_b_width, dy + conf_b_width + conf_t_height);
 		XMoveWindow(display, cw->dec, dx, dy);
@@ -249,7 +249,7 @@ void cwindow_move(struct cwindow *cw, int dx, int dy) {
 }
 
 
-void cwindow_show(struct cwindow *cw) {
+void cwindow_show(cwindow *cw) {
 			if (cw->decorated) {
 				XMoveWindow(display, cw->window, cw->dims.x + conf_b_width, cw->dims.y + conf_b_width + conf_t_height);
 				XMoveWindow(display, cw->dec, cw->dims.x, cw->dims.y);
@@ -265,7 +265,7 @@ void cwindow_show(struct cwindow *cw) {
 			}
 }
 
-void cwindow_hide(struct cwindow *cw) {
+void cwindow_hide(cwindow *cw) {
 	XMoveWindow(display, cw->window, -1000, -1000);
 	XMoveWindow(display, cw->dec, -1000, -1000);
 	change_color(cw, conf_u_color);
@@ -273,7 +273,7 @@ void cwindow_hide(struct cwindow *cw) {
 	if (cw == f_stack) {
 		f_stack = f_stack->f_next;
 	} else {
-		struct cwindow *tmp = f_stack;
+		cwindow *tmp = f_stack;
 		while (tmp != NULL && tmp->f_next != cw)
 			tmp = tmp->f_next;
 
@@ -286,14 +286,14 @@ void cwindow_hide(struct cwindow *cw) {
 	}
 }
 
-int distance(struct cwindow *a, struct cwindow *b) {
+int distance(cwindow *a, cwindow *b) {
 	int x_diff, y_diff;
     x_diff = a->dims.x - b->dims.x;
     y_diff = a->dims.y - b->dims.y;
     return pow(x_diff, 2) + pow(y_diff, 2);
 }
 
-void change_color(struct cwindow *cw, unsigned long color) {
+void change_color(cwindow *cw, unsigned long color) {
 	if (cw->decorated) {
 		fprintf(stderr, "color changed\n");
 		XSetWindowBackground(display, cw->dec, color);

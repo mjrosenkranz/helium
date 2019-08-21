@@ -24,9 +24,9 @@ int screen_num, disp_width, disp_height;
 /* root window */
 Window root, check;
 /* manages the list of existing windows and focus order*/
-struct cwindow *cw_stack[NUM_TAGS], *f_stack = NULL;
+cwindow *cw_stack[NUM_TAGS], *f_stack = NULL;
 /* currently focused window */
-struct cwindow *focused = NULL;
+cwindow *focused = NULL;
 /* are we running the wm */
 bool running = true;
 /* font */
@@ -48,7 +48,7 @@ bool tag_visible[NUM_TAGS];
 char tag_state[NUM_TAGS];
 
 /* array for finding preferences in xresources */
-struct pref resource[] = {
+pref resource[] = {
 	{"border_width", INT, &conf_b_width},
 	{"border_radius", INT, &conf_radius},
 	{"title_height", INT, &conf_t_height},
@@ -112,7 +112,7 @@ void run(){
 
 
 
-void draw_text(struct cwindow *cw, long text_color) {
+void draw_text(cwindow *cw, long text_color) {
 	XftDraw *draw;
 	if (!cw->decorated) {
 		return;
@@ -153,7 +153,7 @@ void draw_text(struct cwindow *cw, long text_color) {
 
 
 
-int send_icccm(struct cwindow *cw, Atom atom) {
+int send_icccm(cwindow *cw, Atom atom) {
 	int n;
     Atom *protocols;
     int exists = 0;
@@ -181,7 +181,7 @@ int send_icccm(struct cwindow *cw, Atom atom) {
 
 
 
-void load_resource(XrmDatabase db, struct pref *item) {
+void load_resource(XrmDatabase db, pref *item) {
 
 	/* temporary variables variables used to assign to the config */
 	char **sdst = item->dst;
@@ -239,11 +239,9 @@ void conf_init() {
 	db = XrmGetStringDatabase(resources);
 
 
-	struct config_item *curr;
+	pref *p;
 
-	struct pref *p;
-
-	for (p = resource; p < resource + (sizeof(resource) / sizeof(struct pref)); p++) {
+	for (p = resource; p < resource + (sizeof(resource) / sizeof(pref)); p++) {
 		load_resource(db, p);
 	}
 
