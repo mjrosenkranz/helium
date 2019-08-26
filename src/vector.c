@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "vec.h"
+#include "vector.h"
 
 vector *
 create_vector(void) {

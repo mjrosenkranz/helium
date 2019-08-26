@@ -16,6 +16,7 @@
 #include "cwindow.h"
 #include "ipc.h"
 #include "resources.h"
+#include "vector.h"
 
 /* display struct */
 Display *display;
@@ -23,8 +24,6 @@ Display *display;
 int screen_num, disp_width, disp_height;
 /* root window */
 Window root, check;
-/* manages the list of existing windows and focus order*/
-cwindow *cw_stack[NUM_TAGS], *f_stack = NULL;
 /* currently focused window */
 cwindow *focused = NULL;
 /* are we running the wm */
@@ -46,6 +45,8 @@ char *conf_font		= DEFAULT_FONT;
 bool tag_visible[NUM_TAGS];
 /* array of characters for outputting the state of the tags */
 char tag_state[NUM_TAGS];
+/* array of tags themselves */
+vector *tags[NUM_TAGS];
 
 /* array for finding preferences in xresources */
 pref resource[] = {
@@ -79,7 +80,7 @@ void open_display() {
 	fprintf(stderr, "resources loaded\n");
 	/* initialize the tag pointers to null and the visibility to true */
 	for (int i = 0; i < NUM_TAGS; i++) {
-		cw_stack[i] = NULL;
+		tags[i] = create_vector();
 		tag_visible[i] = true;
 		tag_state[i] = '_';
 	}

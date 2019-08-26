@@ -13,12 +13,13 @@
 void (*event_handler[LASTEvent])(XEvent *ev) = {
 	[MapRequest]		= handle_map_request,
     [UnmapNotify]		= handle_unmap_notify,
+    [DestroyNotify]		= handle_destroy_event,
     [ConfigureNotify]	= handle_configure_notify,
     [ConfigureRequest]	= handle_configure_request,
     [ClientMessage]		= handle_client_message,
     [ButtonPress]		= handle_button_press,
     [PropertyNotify]	= handle_property_notify,
-	[Expose]			= handle_expose
+	[Expose]			= handle_expose,
 };
 /* array of functions for client message events */
 void (*client_event_handler[ipc_last])(long *data) = {
@@ -47,8 +48,13 @@ void handle_map_request(XEvent *ev) {
 	if (win_attr.override_redirect) {
 		return;
 	}
-	/* manage new window */
-	manage_window(mre->window, &win_attr);
+
+	if (get_cwindow(mre->window) == NULL) {
+		/* manage new window */
+		manage_window(mre->window, &win_attr);
+	} else {
+		XMapWindow(display, mre->window);
+	}
 
 	fprintf(stderr, "map request handled\n");
 }
@@ -56,16 +62,28 @@ void handle_map_request(XEvent *ev) {
 void handle_unmap_notify(XEvent *ev) {
 	XUnmapEvent *uev = &ev->xunmap;
 	cwindow *cw;
+	/* gets the window only if it is a client (not a decoration) */
 	cw = get_cwindow(uev->window);
 	if (cw != NULL) {
 		XUnmapWindow(display, cw->dec);
-		cwindow_del(cw);
-		XDestroyWindow(display, cw->dec);
-		fprintf(stderr, "window decoration destroyed\n");
 		fprintf(stderr, "unmap notify handled\n");
 	} else {
 		fprintf(stderr, "window to unmap not found\n");
 	}
+}
+
+void handle_destroy_event(XEvent *ev) {
+	XDestroyWindowEvent *dwe = &ev->xdestroywindow;
+	cwindow *cw;
+	cw = get_cwindow(dwe->window);
+	/* make sure we have an actual cwindow */
+	if (cw != NULL) {
+		fprintf(stderr, "window decoration destroyed\n");
+		XDestroyWindow(display, cw->dec);
+		cwindow_del(cw);
+	}
+
+	fprintf(stderr, "%s\n", "destroy event handled");
 }
 
 void handle_configure_request(XEvent *ev) {
@@ -104,13 +122,11 @@ void handle_button_press(XEvent *ev) {
 
 	bev = &ev->xbutton;
 
-	cw = get_cwindow(bev->window);
+	cw = get_cwindow_from_parent(bev->window);
 
 	if (cw == NULL) {
 		return;
-	} else if (cw->window == root) {
-		fprintf(stderr, "root window grabbed, ignoring\n");
-	} else if (is_border(bev->window)) {
+	} else {
 		if (cw != focused) {
 			cwindow_focus(cw);
 		}
@@ -130,8 +146,6 @@ void handle_button_press(XEvent *ev) {
 
 		} while (tmpe.type != ButtonRelease);
 		XUngrabPointer(display, CurrentTime);
-	} else if (cw != focused) {
-		cwindow_focus(cw);
 	}
 
 	fprintf(stderr, "button press handled\n");
@@ -186,52 +200,57 @@ void handle_expose(XEvent *ev) {
 
 	fprintf(stderr, "expose handled\n");
 }
+
 void handle_focus_cardinal(long *data) {
 	fprintf(stderr, "cardinal focus event:\n");
 	/* temporary cwindows for loop and focusing */
 	cwindow *curr, *next_to_focus;
 
-	curr = f_stack;
+	curr = focused;
 	next_to_focus = NULL;
 	/* for keeping track of the distance */
 	int min = 999999;
 	/* loop through cwindows */
-	while(curr != NULL) {
-		int dist = distance(focused, curr);
-		switch (data[1]) {
-			case north :
-				fprintf(stderr, "\tdir: north\n");
-				if (curr->dims.y < focused->dims.y && dist < min) {
-					min = dist;
-					next_to_focus = curr;
+	
+	for (int i = 0; i < NUM_TAGS; i ++) {
+		for (int j = 0; j < tags[i]->size; j++) {
+			if (tag_visible[i]) {
+				curr = tags[i]->elements[j];
+				int dist = distance(focused, curr);
+				switch (data[1]) {
+					case north :
+						fprintf(stderr, "\tdir: north\n");
+						if (curr->dims.y < focused->dims.y && dist < min) {
+							min = dist;
+							next_to_focus = curr;
+						}
+						break;
+					case south :
+						fprintf(stderr, "\tdir: south\n");
+						if (curr->dims.y > focused->dims.y && dist < min) {
+							min = dist;
+							next_to_focus = curr;
+						}
+						break;
+					case east :
+						fprintf(stderr, "\tdir: east\n");
+						if (curr->dims.x > focused->dims.x && dist < min) {
+							min = dist;
+							next_to_focus = curr;
+						}
+						break;
+					case west :
+						fprintf(stderr, "\tdir: west\n");
+						if (curr->dims.x < focused->dims.x && dist < min) {
+							min = dist;
+							next_to_focus = curr;
+						}
+						break;
+					default :
+						break;
 				}
-				break;
-			case south :
-				fprintf(stderr, "\tdir: south\n");
-				if (curr->dims.y > focused->dims.y && dist < min) {
-					min = dist;
-					next_to_focus = curr;
-				}
-				break;
-			case east :
-				fprintf(stderr, "\tdir: east\n");
-				if (curr->dims.x > focused->dims.x && dist < min) {
-					min = dist;
-					next_to_focus = curr;
-				}
-				break;
-			case west :
-				fprintf(stderr, "\tdir: west\n");
-				if (curr->dims.x < focused->dims.x && dist < min) {
-					min = dist;
-					next_to_focus = curr;
-				}
-				break;
-			default :
-				break;
+			}
 		}
-		/* go to next cwindow */
-		curr = curr->f_next;
 	}
 
 	if (next_to_focus == NULL) {
@@ -264,8 +283,6 @@ void handle_move_to(long *data) {
 	cwindow_move(focused, data[1], data[2]);
 }
 void handle_resize_relative(long *data) {
-	fprintf(stderr, "resize relative event:\n");
-
 	if (focused == NULL) {
 		return;
 	}
@@ -299,17 +316,18 @@ void handle_resize_relative(long *data) {
 		default :
 			break;
 	}
-	XMoveResizeWindow(display, focused->window, x, y, w, h);
+	int dec_w = w + 2 * conf_b_width;
+	int dec_h = h + 2 * conf_b_width + conf_t_height;
+	XMoveResizeWindow(display, focused->dec, x, y, dec_w, dec_h);
+	pix_mask(focused->dec, x, y, dec_w, dec_h, false);
+
+	XMoveResizeWindow(display, focused->window, conf_b_width, conf_b_width + conf_t_height, w, h);
+	pix_mask(focused->window, conf_b_width, conf_b_width + conf_t_height, w, h, conf_t_height > 0 && conf_t_height > conf_radius);
 	focused->dims.x = x;
 	focused->dims.y = y;
 	focused->dims.w = w;
 	focused->dims.h = h;
-	/* destroy decorations if they exist */
-	if (focused->decorated) {
-		XDestroyWindow(display, focused->dec);
-	}
-	create_decorations(focused);
-	XRaiseWindow(display, focused->window);
+	fprintf(stderr, "resize relative event handled:\n");
 }
 
 void handle_exit(long *data) {
@@ -317,27 +335,23 @@ void handle_exit(long *data) {
 }
 
 void handle_reload(long *data) {
-	conf_init();
+	// conf_init();
 
-	for (int i = 0; i < NUM_TAGS; i++) {
-		for (cwindow *tmp = cw_stack[i]; tmp != NULL; tmp=tmp->next) {
-			if (focused->decorated) {
-				XDestroyWindow(display, focused->dec);
-			}
-			tmp->decorated = false;
-			create_decorations(tmp);
-		}
-	}
+	// for (int i = 0; i < NUM_TAGS; i++) {
+	// 	for (cwindow *tmp = cw_stack[i]; tmp != NULL; tmp=tmp->next) {
+	// 		if (focused->decorated) {
+	// 			XDestroyWindow(display, focused->dec);
+	// 		}
+	// 		tmp->decorated = false;
+	// 		create_decorations(tmp);
+	// 	}
+	// }
 }
 
 void handle_assign_tag(long *data) {
-	/* check if the focused window exists */
-	if (focused == NULL || f_stack == NULL) {
-		fprintf(stderr, "no window focused\n");
-		return;
-	}
 	int new_tag = data[1];
 	int tag = focused->tag;
+	focused->tag = new_tag;
 	/* change tag in title */
 	draw_text(focused, conf_u_color);
 
@@ -346,23 +360,15 @@ void handle_assign_tag(long *data) {
 		return;
 	}
 	/* remove from previous tag */
-	if (focused == cw_stack[tag]) {
-		cw_stack[tag] = cw_stack[tag]->next;
-	} else {
-		cwindow *tmp = cw_stack[tag];
-		while (tmp != NULL && tmp->next != focused)
-			tmp = tmp->next;
-		
-		tmp->next = tmp->next->next;
-	}
+	int index = get_cwindow_index(tags[tag], focused);
+	fprintf(stderr, "%d\n", index);
+	remove_from_vector(tags[tag], index);
 
-	/* add client window to top of managed window stack */
-	focused->next = cw_stack[new_tag];
-	cw_stack[new_tag] = focused;
-	focused->tag = new_tag;
+	/* add client window to new tag */
+	add_to_vector(tags[new_tag], focused);
 
 	/* change state of old tag */
-	if (cw_stack[tag] == NULL) {
+	if (tags[tag]->size == 0) {
 		tag_state[tag] = '_';
 	}
 	/* change state of new tag (if not 0) */
@@ -388,7 +394,7 @@ void handle_toggle_tag(long *data) {
 		return;
 	}
 	/* do northing if there are no windows in the selected tag */
-	if (cw_stack[tag] == NULL) {
+	if (tags[tag]->size == 0) {
 		fprintf(stderr, "tag %d empty\n", tag);
 		return;
 	}
@@ -397,7 +403,14 @@ void handle_toggle_tag(long *data) {
 	if (tag_visible[tag]) {
 		tag_visible[tag] = false;
 		tag_state[tag] = 'i';
-		for (tmp = cw_stack[tag]; tmp != NULL; tmp=tmp->next) {
+		/* loop thru and hide */
+		for (int i = 0; i < tags[tag]->size; i++) {
+			tmp = tags[tag]->elements[i];
+			if (tmp == focused) {
+				focused = get_next_cwindow();
+				cwindow_focus(focused);
+				fprintf(stderr, "%s\n", "oops focus someone else");
+			}
 			cwindow_hide(tmp);
 		}
 		XChangeProperty(display, root, atom_tag_state, XA_STRING, 8, PropModeReplace, tag_state, NUM_TAGS);
@@ -405,8 +418,15 @@ void handle_toggle_tag(long *data) {
 	} else {
 		tag_visible[tag] = true;
 		tag_state[tag] = 'a';
-		for (tmp = cw_stack[tag]; tmp != NULL; tmp=tmp->next) {
+		for (int i = 0; i < tags[tag]->size; i++) {
+			tmp = tags[tag]->elements[i];
 			cwindow_show(tmp);
+			change_color(tmp, conf_u_color);
+			draw_text(tmp, conf_f_color);
+			if (focused == NULL) {
+				focused = tmp;
+				cwindow_focus(focused);
+			}
 		}
 		XChangeProperty(display, root, atom_tag_state, XA_STRING, 8, PropModeReplace, tag_state, NUM_TAGS);
 		fprintf(stderr, "tag %d now visible\n", tag);

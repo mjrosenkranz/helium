@@ -7,7 +7,7 @@ PREFIX?=/usr
 override CFLAGS +=-s -I${X11_INCLUDE} -I${X11_INCLUDE}/freetype2
 override LDFLAGS +=-L${PREFIX}/lib -lX11 -lXext -lm -lXft
 
-SRC = wm handle hints cwindow
+SRC = wm handle hints cwindow vector
 OBJ = $(patsubst %, src/%.o, $(SRC))
 
 all: helium ipc

@@ -10,6 +10,7 @@ extern void (*client_event_handler[ipc_last])(long *data);
 	
 void handle_map_request(XEvent *ev);
 void handle_unmap_notify(XEvent *ev);
+void handle_destroy_event(XEvent *ev);
 void handle_configure_request(XEvent *ev);
 void handle_configure_notify(XEvent *ev);
 void handle_client_message(XEvent *ev);

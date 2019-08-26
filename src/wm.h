@@ -9,11 +9,11 @@
 #include "resources.h"
 #include "hints.h"
 #include "cwindow.h"
+#include "vector.h"
 
 extern Display *display;
-extern cwindow *cw_stack[NUM_TAGS];
-extern cwindow *f_stack;
-extern cwindow *focused;
+extern vector *tags[NUM_TAGS];
+extern cwindow *focused, *p_focused;
 extern Window root;
 extern Window check;
 extern int conf_b_width;

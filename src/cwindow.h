@@ -2,6 +2,7 @@
 #define CWINDOW_H value
 
 #include <X11/Xlib.h>
+#include "vector.h"
 
 typedef struct cwindow cwindow;
 
@@ -16,8 +17,6 @@ struct cwindow {
 	bool decorated;
 	/* dimentions of the window */
 	cwindow_dims dims;
-	/* next cwindow in list */
-	cwindow *next, *f_next;
 	/* tag to which the window belongs */
 	int tag;
 	char title[512];
@@ -29,8 +28,10 @@ void pix_mask(Window win, int x, int y, int w, int h, bool top);
 void cwindow_save(struct cwindow *cw, int tag);
 void cwindow_del(struct cwindow *cw);
 void cwindow_focus(struct cwindow *cw);
-struct cwindow *get_cwindow(Window w);
-bool is_border(Window w);
+int get_cwindow_index(vector *vec, cwindow *cw);
+cwindow *get_cwindow(Window w);
+cwindow *get_cwindow_from_parent(Window w);
+cwindow *get_next_cwindow();
 void cwindow_move(struct cwindow *cw, int dx, int dy);
 void cwindow_show(struct cwindow *cw);
 void cwindow_hide(struct cwindow *cw);
