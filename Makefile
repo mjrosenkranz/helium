@@ -23,7 +23,7 @@ ipc: src/ipc.o
 	$(CC) src/ipc.o -g -o heliumc $(CFLAGS) $(LDFLAGS)
 
 # deletes excess files
+	#rm -f heliumc
 clean:
 	rm -f helium
-	rm -f heliumc
 	rm -f src/*.o

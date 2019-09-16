@@ -28,10 +28,10 @@ void (*client_event_handler[ipc_last])(long *data) = {
 	[ipc_move_to]			= handle_move_to,
 	[ipc_resize_relative]	= handle_resize_relative,
 	[ipc_exit]				= handle_exit,
-	[ipc_reload]			= handle_reload,
 	[ipc_assign_tag]		= handle_assign_tag,
 	[ipc_toggle_tag]		= handle_toggle_tag,
 	[ipc_close_client]		= handle_close_client,
+	[ipc_pointer]			= handle_pointer,
 };
 
 void handle_map_request(XEvent *ev) {
@@ -88,6 +88,32 @@ void handle_destroy_event(XEvent *ev) {
 
 void handle_configure_request(XEvent *ev) {
 
+	cwindow *cw;
+	XConfigureRequestEvent *cre = &ev->xconfigurerequest;
+	XWindowChanges wc;
+
+	wc.x = cre->x;
+    wc.y = cre->y;
+    wc.width = cre->width;
+    wc.height = cre->height;
+    wc.border_width = cre->border_width;
+    wc.sibling = cre->above;
+    wc.stack_mode = cre->detail;
+    XConfigureWindow(display, cre->window, cre->value_mask, &wc);
+    
+    cw = get_cwindow_from_parent(cre->window);
+
+    if (cw != NULL) {
+		int dec_w = wc.width + 2 * conf_b_width;
+		int dec_h = wc.height + 2 * conf_b_width + conf_t_height;
+		XMoveResizeWindow(display, cw->dec, wc.x, wc.y, dec_w, dec_h);
+		pix_mask(cw->dec, wc.x, wc.y, dec_w, dec_h, false);
+
+		XMoveResizeWindow(display, cw->window, conf_b_width, conf_b_width + conf_t_height, wc.width, wc.height);
+		pix_mask(cw->window, conf_b_width, conf_b_width + conf_t_height, wc.width, wc.height, conf_t_height > 0 && conf_t_height > conf_radius);
+		fprintf(stderr, "configured");
+	}
+
 	fprintf(stderr, "configure request handled\n");
 }
 
@@ -117,35 +143,21 @@ void handle_button_press(XEvent *ev) {
 	int x, y, ocx, ocy, nx, ny, di;
     unsigned int dui;
     Window dummy;
+    Window child;
 
-    XQueryPointer(display, root, &dummy, &dummy, &x, &y, &di, &di, &dui);
+    /* have xlib check where the cursor is and return the child (decoration) window */
+    XQueryPointer(display, root, &dummy, &child, &x, &y, &di, &di, &dui);
 
 	bev = &ev->xbutton;
 
-	cw = get_cwindow_from_parent(bev->window);
+	cw = get_cwindow_from_parent(child);
 
 	if (cw == NULL) {
-		return;
+		fprintf(stderr, "%s\n", "not found");
 	} else {
 		if (cw != focused) {
 			cwindow_focus(cw);
 		}
-		int ogx = cw->dims.x;
-		int ogy = cw->dims.y;
-		/* grab the pointer */
-		if (XGrabPointer(display, root, False, PointerMotionMask|ButtonPressMask|ButtonReleaseMask, GrabModeAsync, GrabModeAsync, None, None, CurrentTime) != GrabSuccess) {
-			return;
-		}
-		XEvent tmpe;
-		do {
-			XMaskEvent(display, PointerMotionMask|ButtonPressMask|ButtonReleaseMask, &tmpe);
-			/* move the window */
-			if (tmpe.type == MotionNotify) {
-				cwindow_move(cw, ogx + (tmpe.xmotion.x - x), ogy + (tmpe.xmotion.y - y));
-			}
-
-		} while (tmpe.type != ButtonRelease);
-		XUngrabPointer(display, CurrentTime);
 	}
 
 	fprintf(stderr, "button press handled\n");
@@ -334,20 +346,6 @@ void handle_exit(long *data) {
 	running = false;
 }
 
-void handle_reload(long *data) {
-	// conf_init();
-
-	// for (int i = 0; i < NUM_TAGS; i++) {
-	// 	for (cwindow *tmp = cw_stack[i]; tmp != NULL; tmp=tmp->next) {
-	// 		if (focused->decorated) {
-	// 			XDestroyWindow(display, focused->dec);
-	// 		}
-	// 		tmp->decorated = false;
-	// 		create_decorations(tmp);
-	// 	}
-	// }
-}
-
 void handle_assign_tag(long *data) {
 	int new_tag = data[1];
 	int tag = focused->tag;
@@ -421,8 +419,7 @@ void handle_toggle_tag(long *data) {
 		for (int i = 0; i < tags[tag]->size; i++) {
 			tmp = tags[tag]->elements[i];
 			cwindow_show(tmp);
-			change_color(tmp, conf_u_color);
-			draw_text(tmp, conf_f_color);
+			cwindow_focus(tmp);
 			if (focused == NULL) {
 				focused = tmp;
 				cwindow_focus(focused);
@@ -431,6 +428,45 @@ void handle_toggle_tag(long *data) {
 		XChangeProperty(display, root, atom_tag_state, XA_STRING, 8, PropModeReplace, tag_state, NUM_TAGS);
 		fprintf(stderr, "tag %d now visible\n", tag);
 	}
+}
+
+void handle_pointer(long *data) {
+	
+	int x, y, ocx, ocy, nx, ny, di;
+    unsigned int dui;
+    Window dummy, subject;
+    cwindow *cw;
+
+    XQueryPointer(display, root, &dummy, &subject, &x, &y, &di, &di, &dui);
+    cw = get_cwindow_from_parent(subject);
+    if (cw != NULL) {
+    	fprintf(stderr, "%s\n", "grabbed window");
+    	cwindow_focus(cw);
+    }
+    fprintf(stderr, "%s\n", "pointer handled");
+//	if (cw == NULL) {
+//		return;
+//	} else {
+//		if (cw != focused) {
+//			cwindow_focus(cw);
+//		}
+//		int ogx = cw->dims.x;
+//		int ogy = cw->dims.y;
+//		/* grab the pointer */
+//		if (XGrabPointer(display, root, False, PointerMotionMask|ButtonPressMask|ButtonReleaseMask, GrabModeAsync, GrabModeAsync, None, None, CurrentTime) != GrabSuccess) {
+//			return;
+//		}
+//		XEvent tmpe;
+//		do {
+//			XMaskEvent(display, PointerMotionMask|ButtonPressMask|ButtonReleaseMask, &tmpe);
+//			/* move the window */
+//			if (tmpe.type == MotionNotify) {
+//				cwindow_move(cw, ogx + (tmpe.xmotion.x - x), ogy + (tmpe.xmotion.y - y));
+//			}
+//
+//		} while (tmpe.type != ButtonRelease);
+//		XUngrabPointer(display, CurrentTime);
+//	}
 }
 
 void handle_close_client(long *data) {

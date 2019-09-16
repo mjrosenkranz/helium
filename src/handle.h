@@ -22,10 +22,10 @@ void handle_move_relative(long *data);
 void handle_move_to(long *data);
 void handle_resize_relative(long *data);
 void handle_exit(long *data);
-void handle_reload(long *data);
 void handle_assign_tag(long *data);
 void handle_toggle_tag(long *data);
 void handle_close_client(long *data);
+void handle_pointer(long *data);
 void handle_get_info(long *data);
 
 #endif

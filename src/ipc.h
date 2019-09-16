@@ -8,10 +8,10 @@ enum ipc_command {
 	ipc_move_to, /* takes x and y to move to */
 	ipc_resize_relative, /* takes an amount and a direction */
 	ipc_exit, /* quit the wm */
-	ipc_reload,
 	ipc_assign_tag,
 	ipc_toggle_tag,
 	ipc_close_client,
+	ipc_pointer,
 	/*ipc_fullscreen,
 	ipc_center, */
 	ipc_last /* the length of the enum */

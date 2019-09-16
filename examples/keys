@@ -1,27 +1,48 @@
+# dmenu
+super + space
+	dmenu_run
+# brightness
+XF86MonBrightnessUp
+    xbacklight -inc 5
+XF86MonBrightnessDown
+    xbacklight -dec 5
+# voluee
+XF86AudioLowerVolume
+	pactl set-sink-volume 0 -5%
+XF86AudioRaiseVolume
+	pactl set-sink-volume 0 +5%
+XF86AudioMute
+	pactl set-sink-mute 0 toggle
+XF86AudioPlay
+	playerctl play-pause
+XF86AudioNext
+	playerctl next
+XF86AudioPrev
+	playerctl previous
 # focus in given direction
 super + {h, j, k, l}
 	heliumc focus {west, south, north, east}
 # move window in given direction
 super + shift + {h, j, k, l}
-	heliumc move_relative {-20 0, 0 20, 0 -20, 20 0}
+	heliumc move {-20 0, 0 20, 0 -20, 20 0}
+# move to center
+super + shift + c
+	heliumc move_to 400 200
 # move given side out
 super + {Left, Down, Up, Right}
-	heliumc resize_relative 20 {west, south, north, east}
+	heliumc resize 20 {west, south, north, east}
 # move given side in
 super + shift + {Left, Down, Up, Right}
-	heliumc resize_relative -20 {east, north, south, west}
+	heliumc resize -20 {east, north, south, west}
 # exit session
 super + Escape
 	heliumc exit
-# reload xresources
-super + r
-	heliumc reload
 # assign focused window to tag by number
-super + {1-8}
-	heliumc tag {1-8}
+super + shift + {0-8}
+	heliumc tag {0-8}
 # toggle visibility of given tag
-super + shift + {1-8}
-	heliumc toggle_tag {1-8}
+super + {0-8}
+	heliumc toggle_tag {0-8}
 # close current window
 super + w
 	heliumc close
@@ -31,3 +52,6 @@ super + Return
 # reload sxhkdrc
 super + shift + r
 	pkill -USR1 -x sxhkd
+# focus and move with mouse
+-button1
+	heliumc pointer

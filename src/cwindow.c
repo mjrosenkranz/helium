@@ -61,7 +61,6 @@ void create_decorations(cwindow *cw) {
 	int h = cw->dims.h + 2 * conf_b_width + conf_t_height;
 	/* calculate dummy window dimentions */
  
-	// XMoveWindow(display, cw->window, x + conf_b_width, y + conf_b_width + conf_t_height);
 	/* create the border window */
 	Window dec = XCreateSimpleWindow(display, root, x, y, w, h, 0, conf_f_color, conf_f_color);
 	pix_mask(dec, x, y, w, h, false);
@@ -71,8 +70,6 @@ void create_decorations(cwindow *cw) {
 	/* reparent client window */	
 	XReparentWindow(display, cw->window, cw->dec, conf_b_width, conf_b_width + conf_t_height);
 
-	/* grab the mouse (left click), any modifier, over the decoration window */
-	XGrabButton(display, 1, AnyModifier, cw->dec, True, ButtonPressMask, GrabModeAsync, GrabModeAsync, None, None);
 	/* get exposure events for redrawing the title */
 	XSelectInput (display, cw->dec, ExposureMask);
 
@@ -243,19 +240,6 @@ void cwindow_move(cwindow *cw, int dx, int dy) {
 
 void cwindow_show(cwindow *cw) {
 	XMapWindow(display, cw->dec);
-	// if (cw->decorated) {
-	// 	XMoveWindow(display, cw->window, cw->dims.x + conf_b_width, cw->dims.y + conf_b_width + conf_t_height);
-	// 	XMoveWindow(display, cw->dec, cw->dims.x, cw->dims.y);
-	// } else {
-	// 	XMoveWindow(display, cw->window, cw->dims.x, cw->dims.y);
-	// }
-	// /* add back to the focus list */
-	// if (focused == NULL) {
-	// 	fprintf(stderr, "no windows currently focused, taking focus");
-	// 	cwindow_focus(cw);
-	// } else if (p_focused == NULL) {
-	// 	p_focused = cw;
-	// }
 }
 
 void cwindow_hide(cwindow *cw) {
@@ -265,24 +249,6 @@ void cwindow_hide(cwindow *cw) {
 	}
 
 	XUnmapWindow(display, cw->dec);
-	// XMoveWindow(display, cw->window, -1000, -1000);
-	// XMoveWindow(display, cw->dec, -1000, -1000);
-	// change_color(cw, conf_u_color);
-	// /* remove from focus list */
-	// if (cw == f_stack) {
-	// 	f_stack = f_stack->f_next;
-	// } else {
-	// 	cwindow *tmp = f_stack;
-	// 	while (tmp != NULL && tmp->f_next != cw)
-	// 		tmp = tmp->f_next;
-
-	// 	tmp->f_next = tmp->f_next->f_next;
-	// }	
-	// /* focus next window if currently focused */
-	// if (cw == focused) {
-	// 	focused = f_stack;
-	// 	cwindow_focus(focused);
-	// }
 }
 
 int distance(cwindow *a, cwindow *b) {

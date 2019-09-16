@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#xrdb -merge $HOME/dots/xfiles/Xresources
+xrdb -merge $HOME/dots/xfiles/xres &
 
 sxhkd -c $HOME/wndwmngr/examples/keys &
 

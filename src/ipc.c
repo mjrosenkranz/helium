@@ -15,14 +15,14 @@ static void send_event();
 /* array of ipc commands */
 static command cmds[] = {
 	{"focus", ipc_focus_cardinal, 1, true},
-	{"move_relative", ipc_move_relative, 2, false},
+	{"move", ipc_move_relative, 2, false},
 	{"move_to", ipc_move_to, 2, false},
-	{"resize_relative", ipc_resize_relative, 2, true},
+	{"resize", ipc_resize_relative, 2, true},
 	{"exit", ipc_exit, 0, false},
-	{"reload", ipc_reload, 0, false},
 	{"tag", ipc_assign_tag, 1, false},
 	{"toggle_tag", ipc_toggle_tag, 1, false},
 	{"close", ipc_close_client, 0, false},
+	{"pointer", ipc_pointer, 0, false},
 };
 
 static void usage() {
