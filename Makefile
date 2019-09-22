@@ -10,7 +10,7 @@ override LDFLAGS +=-L${PREFIX}/lib -lX11 -lXext -lm -lXft
 SRC = wm handle hints cwindow vector
 OBJ = $(patsubst %, src/%.o, $(SRC))
 
-all: helium ipc
+all: helium ipc clean_src
 
 %.o: %.c
 	@echo $@
@@ -24,6 +24,10 @@ ipc: src/ipc.o
 
 # deletes excess files
 	#rm -f heliumc
+clean_src:
+	rm -f src/*.o
+
 clean:
 	rm -f helium
+	rm -f heliumc
 	rm -f src/*.o

@@ -37,5 +37,6 @@ void cwindow_show(struct cwindow *cw);
 void cwindow_hide(struct cwindow *cw);
 int distance(struct cwindow *a, struct cwindow *b);
 void change_color(struct cwindow *cw, unsigned long color);
+void draw_borders(cwindow *cw, unsigned long i_color, unsigned long o_color);
 
 #endif

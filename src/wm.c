@@ -35,10 +35,15 @@ XRenderColor r_color;
 
 /* conf variables */
 int conf_b_width	= DEFAULT_B_WIDTH;
+int conf_i_width	= DEFAULT_I_WIDTH;
 int conf_radius		= DEFAULT_RADIUS;
 int conf_t_height	= DEFAULT_T_HEIGHT;
 long conf_u_color	= DEFAULT_U_COLOR;
 long conf_f_color	= DEFAULT_F_COLOR;
+long conf_iu_color	= DEFAULT_IU_COLOR;
+long conf_if_color	= DEFAULT_IF_COLOR;
+long conf_tf_color	= DEFAULT_TF_COLOR;
+long conf_tu_color	= DEFAULT_TU_COLOR;
 char *conf_font		= DEFAULT_FONT;
 
 /* array corresponding to each tag's visibility */
@@ -51,10 +56,15 @@ vector *tags[NUM_TAGS];
 /* array for finding preferences in xresources */
 pref resource[] = {
 	{"border_width", INT, &conf_b_width},
+	{"inner_width", INT, &conf_i_width},
 	{"border_radius", INT, &conf_radius},
 	{"title_height", INT, &conf_t_height},
 	{"focused_color", COLOR, &conf_f_color},
 	{"unfocused_color", COLOR, &conf_u_color},
+	{"inner_focused_color", COLOR, &conf_if_color},
+	{"inner_unfocused_color", COLOR, &conf_iu_color},
+	{"text_focused_color", COLOR, &conf_tf_color},
+	{"text_unfocused_color", COLOR, &conf_tu_color},
 	{"font", STRING, &conf_font},
 };
 
@@ -138,8 +148,12 @@ void draw_text(cwindow *cw, long text_color) {
 			break;
 		}
 	}
-    y = (conf_t_height / 2) + ((extents.y) / 2);
+    y = (conf_t_height + conf_i_width + conf_b_width) / 2  + (extents.y) / 2;
     x = (cw->dims.w - extents.width) / 2;
+    if (extents.height > conf_t_height) {
+    	fprintf(stderr, "%s\n", "border too small to draw text on");
+		return;
+	}
 
     XftColorAllocValue(display, DefaultVisual(display, screen_num), DefaultColormap(display, screen_num), &r_color, &xft_color);
 
@@ -199,21 +213,24 @@ void load_resource(XrmDatabase db, pref *item) {
 	snprintf(name, 42, "helium.%s", item->name);
 	snprintf(class, 42, "Helium.%s", item->name);
 	/* get the resource value */
-	XrmGetResource(db, name, class, &return_type, &value);
-	/* assign pointer to the correct value depending on type */
-	switch (item->format) {
-		case STRING:
-			*sdst = value.addr;
-			fprintf(stderr, "%s = %s\n", name, *sdst);
-			break;
-		case INT:
-			*idst = strtoul(value.addr, NULL, 10);
-			fprintf(stderr, "%s = %d\n", name, *idst);
-			break;
-		case COLOR:
-			*ldst = strtoul(&value.addr[1], NULL, 16);
-			fprintf(stderr, "%s = %x\n", name, *ldst);
-			break;
+	if (XrmGetResource(db, name, class, &return_type, &value)) {
+		/* assign pointer to the correct value depending on type */
+		switch (item->format) {
+			case STRING:
+				*sdst = value.addr;
+				fprintf(stderr, "%s = %s\n", name, *sdst);
+				break;
+			case INT:
+				*idst = strtoul(value.addr, NULL, 10);
+				fprintf(stderr, "%s = %d\n", name, *idst);
+				break;
+			case COLOR:
+				*ldst = strtoul(&value.addr[1], NULL, 16);
+				fprintf(stderr, "%s = %x\n", name, *ldst);
+				break;
+		}
+	} else {
+		fprintf(stderr, "%s%s\n", item->name, " not found");
 	}
 }
 

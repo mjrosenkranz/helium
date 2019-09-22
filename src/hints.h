@@ -10,6 +10,7 @@ enum atoms_net {
     NetCurrentDesktop,
     NetClientList,
     NetWMStateFullscreen,
+    NetWMFrameExtents,
     NetWMCheck,
     NetWMState,
     NetWMName,

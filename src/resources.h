@@ -2,15 +2,16 @@
 #define RESOURCES_H
 
 /* items we are looking for in xresources */
-enum config_elements {
-	B_WIDTH,
-	RADIUS,
-	T_HEIGHT,
-	U_COLOR,
-	F_COLOR,
-	FONT,
-	CONF_LAST,
-};
+// enum config_elements {
+// 	B_WIDTH,
+// 	I_WIDTH,
+// 	RADIUS,
+// 	T_HEIGHT,
+// 	U_COLOR,
+// 	F_COLOR,
+// 	FONT,
+// 	CONF_LAST,
+// };
 /* type of the resource */
 enum element_format {
 	INT,

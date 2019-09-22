@@ -57,19 +57,14 @@ static void send_event(command *c, char **args) {
 		char *dir = args[c->num_args - 1];
 
 		if (strcmp(dir, "north") == 0) {
-			fprintf(stderr, "%d\n", north);
 			xev.xclient.data.l[index + 1] = north;
 		} else if (strcmp(dir, "south") == 0) {
-			fprintf(stderr, "%d\n", south);
 			xev.xclient.data.l[index + 1] = south;
 		} else if (strcmp(dir, "east") == 0) {
-			fprintf(stderr, "%d\n", east);
 			xev.xclient.data.l[index + 1] = east;
 		} else if (strcmp(dir, "west") == 0) {
-			fprintf(stderr, "%d\n", west);
 			xev.xclient.data.l[index + 1] = west;
 		} else {
-			fprintf(stderr, "%s not a valid direction\n", dir);
 			exit(EXIT_FAILURE);
 		}
 		endex = index;
@@ -95,7 +90,6 @@ int main(int argc, char *argv[]) {
 	/* loop over all ipc commands for the one specified by commandline argument */
 	for (int i = 0; i < ipc_last; i++) {
 		if (strcmp(cmds[i].name, argv[1]) == 0) {
-			fprintf(stderr, "%s\n", cmds[i].name);
 			if (argc - 2 == cmds[i].num_args) {
 				send_event(&cmds[i], argv + 2);
 				return 0;
