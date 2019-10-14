@@ -311,12 +311,12 @@ void draw_borders(cwindow *cw, unsigned long o_color, unsigned long i_color) {
 
 	/* the inner border is a rounded rectangle */
 	XSetForeground(display, gc, i_color);
-	/* arcs used for corners and rectangles inside */
-//	XFillRectangle(display, borders, gc, conf_b_width + conf_i_width, conf_b_width,
-//	 cw->dims.w, ih + conf_t_height);
-//	XFillRectangle(display, borders, gc, conf_b_width, conf_b_width + conf_i_width,
-//	 iw, ih - (2 * conf_i_width) + conf_t_height);
+	XFillRectangle(display, borders, gc, conf_b_width + conf_i_width, conf_b_width,
+	 cw->dims.w, ih + conf_t_height);
+	XFillRectangle(display, borders, gc, conf_b_width, conf_b_width + conf_i_width,
+	 iw, ih - (2 * conf_i_width) + conf_t_height);
 
+	/* arcs used for corners and rectangles inside */
 	XFillArc(display, borders, gc, conf_b_width, conf_b_width,
 			diam, diam, 64 * 90, 64 * 90);
 	XFillArc(display, borders, gc, w - (conf_b_width + diam), conf_b_width,
