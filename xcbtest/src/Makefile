@@ -19,6 +19,6 @@ clean:
 
 run: all
 	@Xephyr -br -ac -noreset -screen 800x600 :1 &>/dev/null &
-	@sleep 2
+	@sleep 1
 	@DISPLAY=:1 ./helium
 	@killall Xephyr

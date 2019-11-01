@@ -47,9 +47,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "%s\n", "could not open connection");
         return 1;
     }
-    client c = client(10, 10, 100, 100);
-    c.decorate(true);
-    xcb_flush(conn);
+    client c = client(100, 100, 200, 200);
+    c.decorate(false);
     
     getchar();
     fprintf(stderr, "%s\n", "shutting down");
