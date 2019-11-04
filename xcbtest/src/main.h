@@ -15,4 +15,4 @@ void dectorate();
 #define DEF_OF_COLOR 0xff3f3f3f
 #define DEF_OU_COLOR 0xff00ff00
 
-#define DEF_T_HEIGHT 5
+#define DEF_HEIGHT 5

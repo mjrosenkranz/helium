@@ -6,17 +6,17 @@ client::client(xcb_window_t win_id) {
     dec = xcb_generate_id(conn);
 }
 
-client::client(int _x, int _y, int _w, int _h) {
+client::client(int x, int y, int w, int h) {
     // create decoration window
     dec = xcb_generate_id(conn);
-    dx = _x;
-    dy = _y;
-    x = dx + DEF_IB_WIDTH + DEF_OB_WIDTH;
-    y = dy + DEF_IB_WIDTH + DEF_OB_WIDTH + DEF_T_HEIGHT;
-    w = _w;
-    h = _h;
-    dw = w + (2 * DEF_IB_WIDTH + DEF_OB_WIDTH);
-    dw = w + (2 * DEF_IB_WIDTH + DEF_OB_WIDTH);
+    dx = x;
+    dy = y;
+    wx = dx + DEF_IB_WIDTH + DEF_OB_WIDTH;
+    wy = dy + DEF_IB_WIDTH + DEF_OB_WIDTH + DEF_HEIGHT;
+    ww = w;
+    wh = h;
+    dw = w + 2 * (DEF_IB_WIDTH + DEF_OB_WIDTH);
+    dh = h + 2 * (DEF_IB_WIDTH + DEF_OB_WIDTH);
     
     tag = 0;
     // might assign different colors to each tag
@@ -38,7 +38,7 @@ client::client(int _x, int _y, int _w, int _h) {
     xcb_create_window(
         conn, XCB_COPY_FROM_PARENT,
         dec, screen->root, //parent
-        x, y, w, h,
+        wx, wy, dw, dh,
         0, XCB_WINDOW_CLASS_INPUT_OUTPUT, //class
         screen->root_visual, // visual
         mask, values
@@ -51,9 +51,9 @@ void client::decorate(bool focused) {
     fprintf(stderr, "%s\n", "unmapping window to decorate");
     xcb_unmap_window(conn, dec);
 
-    //uint32_t ic = focused ? if_color : iu_color;
-    //uint32_t oc = focused ? of_color : ou_color;
-    uint32_t oc = 0xff00ff00;
+    uint32_t ic = focused ? if_color : iu_color;
+    uint32_t oc = focused ? of_color : ou_color;
+    uint32_t col = 0xffffff00;
     // make the pixmap
     xcb_pixmap_t pix = xcb_generate_id(conn);
     xcb_create_pixmap(conn, screen->root_depth, pix, dec, dw, dh);
@@ -62,18 +62,19 @@ void client::decorate(bool focused) {
     xcb_create_gc(conn, gc, pix, XCB_GC_FOREGROUND, &oc);
 
     // draw on the pixmap
-    /*xcb_rectangle_t bg = {0, 0, dw, dh};
-    xcb_poly_fill_rectangle(conn, pix, gc, 1, &bg);*/
-
-    rounded(pix, gc, dw, dh, 10);
+    rounded(pix, gc, 0, 0, dw, dh, 15);
+    xcb_change_gc(conn, gc, XCB_GC_FOREGROUND, &ic);
+    rounded(pix, gc, DEF_OB_WIDTH, DEF_OB_WIDTH, dw - 2 * DEF_OB_WIDTH,
+		    dh - 2 * DEF_OB_WIDTH, 10);
+    xcb_change_gc(conn, gc, XCB_GC_FOREGROUND, &col);
+    rounded(pix, gc, 10, 10, ww, wh, 5);
 
 
     fprintf(stderr, "%s\n", "changing attributes");
-    uint32_t mask = XCB_CW_BACK_PIXMAP | XCB_CW_OVERRIDE_REDIRECT;
     uint32_t values[2];
+    uint32_t mask = XCB_CW_BACK_PIXMAP | XCB_CW_OVERRIDE_REDIRECT;
     values[0] = pix;
     values[1] = 1;
-    //values[1] = 0x00ff00;
     xcb_void_cookie_t cookie = xcb_change_window_attributes_checked(
             conn, dec,
             XCB_CW_BACK_PIXMAP, &values[0]);
@@ -103,18 +104,18 @@ void client::mask() {
 }
 
 void client::rounded(xcb_pixmap_t pixmap, xcb_gcontext_t gc,
-        unsigned int _w, unsigned int _h, unsigned int diam) {
+    int x, int y, int w, int h, int diam) {
     xcb_rectangle_t rects[] = {
-        {diam / 2, 0, _w - diam, _h},
-        {0, diam / 2, diam / 2, _h - diam},
-        {_w - diam / 2, diam / 2, diam / 2, _h - diam},
+        {x + diam / 2, y, w - diam, h},
+        {x, y + diam / 2, diam / 2, h - diam},
+        {x + w - diam / 2, y + diam / 2, diam / 2, h - diam},
     };
 
     xcb_arc_t arcs[] = {
-        {  0,    0,    diam, diam, 0, 360 << 6 },
-        {  0,    _h - diam, diam, diam, 0, 360 << 6 },
-        { _w - diam, 0,    diam, diam, 0, 360 << 6 },
-        { _w - diam, _h - diam, diam, diam, 0, 360 << 6 },
+        { x,    y,    diam, diam, 0, 360 << 6 },
+        { x,    y + h - diam, diam, diam, 0, 360 << 6 },
+        { x + w - diam, y,    diam, diam, 0, 360 << 6 },
+        { x + w - diam, y + h - diam, diam, diam, 0, 360 << 6 },
     };
 
     xcb_poly_fill_rectangle(conn, pixmap, gc, 3, rects);
