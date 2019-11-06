@@ -1,10 +1,12 @@
 #pragma once
 
+
 extern xcb_connection_t *conn;
 extern xcb_screen_t *screen;
 
 bool open_connection();
-void dectorate();
+void run();
+void setupwm();
 
 // default settings
 #define DEF_IB_WIDTH 5
@@ -16,3 +18,4 @@ void dectorate();
 #define DEF_OU_COLOR 0xff00ff00
 
 #define DEF_HEIGHT 5
+#define NUM_TAGS 7

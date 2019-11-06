@@ -1,11 +1,46 @@
 #include <iostream>
 #include "client.h"
-
 client::client(xcb_window_t win_id) {
+    win = win_id;
     // create decoration window
     dec = xcb_generate_id(conn);
-}
 
+    // get/set the geometry of the window
+    xcb_get_geometry_reply_t *geo;
+	geo = xcb_get_geometry_reply(conn, xcb_get_geometry(conn, win), NULL);
+	if (geo == NULL) {
+		fprintf(stderr, "%s\n", "no geometry found\n");
+		return;
+	}
+
+    dx = geo->x;
+    dy = geo->y;
+    wx = dx + DEF_IB_WIDTH + DEF_OB_WIDTH;
+    wy = dy + DEF_IB_WIDTH + DEF_OB_WIDTH + DEF_HEIGHT;
+    ww = geo->width;
+    wh = geo->height;
+    dw = geo->width + 2 * (DEF_IB_WIDTH + DEF_OB_WIDTH);
+    dh = geo->width + 2 * (DEF_IB_WIDTH + DEF_OB_WIDTH);
+    // asign to tag
+    tag = 0;
+    // might assign different colors to each tag
+    if_color = DEF_IF_COLOR;
+    iu_color = DEF_IU_COLOR;
+    of_color = DEF_OF_COLOR;
+    ou_color = DEF_OU_COLOR;
+
+    decorated = true;
+
+
+    //uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_OVERRIDE_REDIRECT;
+    uint32_t mask = XCB_CW_BACK_PIXEL;
+    uint32_t values[1];
+
+    values[0] = 0xffffffff;
+    xcb_map_window(conn, win);
+
+    xcb_flush(conn);
+}
 client::client(int x, int y, int w, int h) {
     // create decoration window
     dec = xcb_generate_id(conn);
@@ -28,7 +63,6 @@ client::client(int x, int y, int w, int h) {
     decorated = true;
 
 
-    //uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_OVERRIDE_REDIRECT;
     uint32_t mask = XCB_CW_BACK_PIXEL;
     uint32_t values[1];
 
@@ -49,7 +83,20 @@ client::client(int x, int y, int w, int h) {
 
 void client::decorate(bool focused) {
     fprintf(stderr, "%s\n", "unmapping window to decorate");
-    xcb_unmap_window(conn, dec);
+    uint32_t mask = XCB_CW_BACK_PIXEL;
+    uint32_t values[2];
+
+    values[0] = 0xffffffff;
+    // create decoration
+    xcb_create_window(
+        conn, XCB_COPY_FROM_PARENT,
+        dec, screen->root, //parent
+        wx, wy, dw, dh,
+        0, XCB_WINDOW_CLASS_INPUT_OUTPUT, //class
+        screen->root_visual, // visual
+        mask, values
+    );
+    //xcb_unmap_window(conn, dec);
 
     uint32_t ic = focused ? if_color : iu_color;
     uint32_t oc = focused ? of_color : ou_color;
@@ -61,18 +108,18 @@ void client::decorate(bool focused) {
     xcb_gcontext_t gc = xcb_generate_id(conn);
     xcb_create_gc(conn, gc, pix, XCB_GC_FOREGROUND, &oc);
 
-    // draw on the pixmap
+    // draw the outer border
     rounded(pix, gc, 0, 0, dw, dh, 15);
+    // change color to inner
     xcb_change_gc(conn, gc, XCB_GC_FOREGROUND, &ic);
+    // draw the inner border
     rounded(pix, gc, DEF_OB_WIDTH, DEF_OB_WIDTH, dw - 2 * DEF_OB_WIDTH,
 		    dh - 2 * DEF_OB_WIDTH, 10);
-    xcb_change_gc(conn, gc, XCB_GC_FOREGROUND, &col);
-    rounded(pix, gc, 10, 10, ww, wh, 5);
 
 
     fprintf(stderr, "%s\n", "changing attributes");
-    uint32_t values[2];
-    uint32_t mask = XCB_CW_BACK_PIXMAP | XCB_CW_OVERRIDE_REDIRECT;
+    //uint32_t values[2];
+    //uint32_t mask = XCB_CW_BACK_PIXMAP | XCB_CW_OVERRIDE_REDIRECT;
     values[0] = pix;
     values[1] = 1;
     xcb_void_cookie_t cookie = xcb_change_window_attributes_checked(

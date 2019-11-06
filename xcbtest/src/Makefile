@@ -3,7 +3,7 @@ LDFLAGS = -L/opt/local/lib -lxcb
 
 all: helium
 
-helium: main.o client.o
+helium: main.o client.o events.o utils.o
 	g++ ${CFLAGS} $^ -o $@ ${LDFLAGS}
 
 %.o: %.cpp
