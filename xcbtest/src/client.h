@@ -14,8 +14,8 @@ public:
     xcb_window_t win, dec;
 
     client(xcb_window_t win_id);
-    client(int x, int y, int w, int h);
     void decorate(bool focused);
+    void reconfigure(int x, int y, int w, int h);
     void focus();
 
 private:

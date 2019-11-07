@@ -9,7 +9,7 @@ client::client(xcb_window_t win_id) {
     xcb_get_geometry_reply_t *geo;
 	geo = xcb_get_geometry_reply(conn, xcb_get_geometry(conn, win), NULL);
 	if (geo == NULL) {
-		fprintf(stderr, "%s\n", "no geometry found\n");
+		fprintf(stderr, "%s\n", "no geometry found");
 		return;
 	}
 
@@ -36,39 +36,6 @@ client::client(xcb_window_t win_id) {
     uint32_t mask = XCB_CW_BACK_PIXEL;
     uint32_t values[1];
 
-    values[0] = 0xffffffff;
-    xcb_map_window(conn, win);
-
-    xcb_flush(conn);
-}
-client::client(int x, int y, int w, int h) {
-    // create decoration window
-    dec = xcb_generate_id(conn);
-    dx = x;
-    dy = y;
-    wx = dx + DEF_IB_WIDTH + DEF_OB_WIDTH;
-    wy = dy + DEF_IB_WIDTH + DEF_OB_WIDTH + DEF_HEIGHT;
-    ww = w;
-    wh = h;
-    dw = w + 2 * (DEF_IB_WIDTH + DEF_OB_WIDTH);
-    dh = h + 2 * (DEF_IB_WIDTH + DEF_OB_WIDTH);
-    
-    tag = 0;
-    // might assign different colors to each tag
-    if_color = DEF_IF_COLOR;
-    iu_color = DEF_IU_COLOR;
-    of_color = DEF_OF_COLOR;
-    ou_color = DEF_OU_COLOR;
-    // fprintf(stderr, "color: %lx\n", iu_color);
-    decorated = true;
-
-
-    uint32_t mask = XCB_CW_BACK_PIXEL;
-    uint32_t values[1];
-
-    values[0] = 0xffffffff;
-    //values[1] = 1;
-    // create decoration
     xcb_create_window(
         conn, XCB_COPY_FROM_PARENT,
         dec, screen->root, //parent
@@ -77,27 +44,22 @@ client::client(int x, int y, int w, int h) {
         screen->root_visual, // visual
         mask, values
     );
-    xcb_map_window(conn, dec);
 
+    values[0] = 0xffffffff;
+    xcb_map_window(conn, dec);
+    xcb_map_window(conn, win);
 }
 
+
 void client::decorate(bool focused) {
-    fprintf(stderr, "%s\n", "unmapping window to decorate");
+    xcb_unmap_window(conn, dec);
+    xcb_unmap_window(conn, win);
     uint32_t mask = XCB_CW_BACK_PIXEL;
     uint32_t values[2];
 
     values[0] = 0xffffffff;
     // create decoration
-    xcb_create_window(
-        conn, XCB_COPY_FROM_PARENT,
-        dec, screen->root, //parent
-        wx, wy, dw, dh,
-        0, XCB_WINDOW_CLASS_INPUT_OUTPUT, //class
-        screen->root_visual, // visual
-        mask, values
-    );
-    //xcb_unmap_window(conn, dec);
-
+    
     uint32_t ic = focused ? if_color : iu_color;
     uint32_t oc = focused ? of_color : ou_color;
     uint32_t col = 0xffffff00;
@@ -134,16 +96,59 @@ void client::decorate(bool focused) {
     }
 
     // map decoration and window
-    fprintf(stderr, "%s\n", "mapping decorated window");
     xcb_free_pixmap(conn, pix);
     xcb_free_gc(conn, gc);
+    fprintf(stderr, "freed\n");
     xcb_map_window(conn, dec);
+    xcb_map_window(conn, win);
+    fprintf(stderr, "%s\n", "mapping decorated window");
+
     xcb_flush(conn);
 }
 
 void client::focus() {
     fprintf(stderr, "Focusing client %x\n", win);
     fprintf(stderr, "%s\n", "changing border color");
+}
+
+void client::reconfigure(int x, int y, int w, int h) {
+    xcb_unmap_window(conn, dec);
+    xcb_unmap_window(conn, win);
+
+    dx = x;
+    dy = y;
+    wx = dx + DEF_IB_WIDTH + DEF_OB_WIDTH;
+    wy = dy + DEF_IB_WIDTH + DEF_OB_WIDTH + DEF_HEIGHT;
+    ww = w;
+    wh = h;
+    dw = w + 2 * (DEF_IB_WIDTH + DEF_OB_WIDTH);
+    dh = w + 2 * (DEF_IB_WIDTH + DEF_OB_WIDTH);
+
+    fprintf(stderr, "x: %d y: %d w: %d h: %d\n", dx, dy, dw, dh);
+    fprintf(stderr, "x: %d y: %d w: %d h: %d\n", wx, wy, ww, wh);
+    uint32_t mask = 0;
+    mask |= XCB_CONFIG_WINDOW_X;
+    mask |= XCB_CONFIG_WINDOW_Y;
+    mask |= XCB_CONFIG_WINDOW_WIDTH;
+    mask |= XCB_CONFIG_WINDOW_HEIGHT;
+    uint32_t values[5];
+    values[0] = dx;
+    values[1] = dy;
+    values[2] = dw;
+    values[3] = dh;
+    fprintf(stderr, "%s\n", "reconfiguring decoration");
+    xcb_configure_window(conn, dec, mask, values);
+    xcb_map_window(conn, dec);
+
+    values[0] = wx;
+    values[1] = wy;
+    values[2] = ww;
+    values[3] = wh;
+    values[4] = XCB_STACK_MODE_ABOVE;
+    mask |= XCB_CONFIG_WINDOW_STACK_MODE;
+    fprintf(stderr, "%s\n", "reconfiguring window");
+    xcb_configure_window(conn, win, mask, values);
+    xcb_map_window(conn, win);
 }
 
 void client::mask() {
