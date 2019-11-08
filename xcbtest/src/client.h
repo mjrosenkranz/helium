@@ -19,7 +19,7 @@ public:
     void focus();
 
 private:
-    void mask();
+    void apply_mask(int diam);
     void rounded(xcb_pixmap_t pixmap, xcb_gcontext_t gc,
          int x, int y,
 	     int w, int h, int diam);

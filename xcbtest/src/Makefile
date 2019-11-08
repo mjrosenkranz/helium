@@ -1,5 +1,5 @@
 CFLAGS = -Wall -I/opt/local/include
-LDFLAGS = -L/opt/local/lib -lxcb
+LDFLAGS = -L/opt/local/lib -lxcb -lxcb-shape
 
 all: helium
 

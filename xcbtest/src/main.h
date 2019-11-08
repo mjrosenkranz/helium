@@ -10,7 +10,7 @@ void setupwm();
 
 // default settings
 #define DEF_IB_WIDTH 5
-#define DEF_IF_COLOR 0xff00ff00
+#define DEF_IF_COLOR 0xff77ff00
 #define DEF_IU_COLOR 0xff3f3f3f
 
 #define DEF_OB_WIDTH 5

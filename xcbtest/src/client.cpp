@@ -1,4 +1,5 @@
 #include <iostream>
+#include <xcb/shape.h>
 #include "client.h"
 client::client(xcb_window_t win_id) {
     win = win_id;
@@ -20,7 +21,7 @@ client::client(xcb_window_t win_id) {
     ww = geo->width;
     wh = geo->height;
     dw = geo->width + 2 * (DEF_IB_WIDTH + DEF_OB_WIDTH);
-    dh = geo->width + 2 * (DEF_IB_WIDTH + DEF_OB_WIDTH);
+    dh = geo->height + 2 * (DEF_IB_WIDTH + DEF_OB_WIDTH) + DEF_HEIGHT;
     // asign to tag
     tag = 0;
     // might assign different colors to each tag
@@ -31,10 +32,17 @@ client::client(xcb_window_t win_id) {
 
     decorated = true;
 
-
-    //uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_OVERRIDE_REDIRECT;
-    uint32_t mask = XCB_CW_BACK_PIXEL;
+    // subscribe to events
+    uint32_t mask = XCB_CW_EVENT_MASK;
     uint32_t values[1];
+    values[0] = XCB_EVENT_MASK_ENTER_WINDOW |
+        XCB_EVENT_MASK_FOCUS_CHANGE |
+        XCB_EVENT_MASK_PROPERTY_CHANGE |
+        XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+    xcb_change_window_attributes(conn, win, mask, values);
+
+    mask = XCB_CW_BACK_PIXEL;
+    values[1];
 
     xcb_create_window(
         conn, XCB_COPY_FROM_PARENT,
@@ -122,7 +130,7 @@ void client::reconfigure(int x, int y, int w, int h) {
     ww = w;
     wh = h;
     dw = w + 2 * (DEF_IB_WIDTH + DEF_OB_WIDTH);
-    dh = w + 2 * (DEF_IB_WIDTH + DEF_OB_WIDTH);
+    dh = h + 2 * (DEF_IB_WIDTH + DEF_OB_WIDTH) + DEF_HEIGHT;
 
     fprintf(stderr, "x: %d y: %d w: %d h: %d\n", dx, dy, dw, dh);
     fprintf(stderr, "x: %d y: %d w: %d h: %d\n", wx, wy, ww, wh);
@@ -148,11 +156,80 @@ void client::reconfigure(int x, int y, int w, int h) {
     mask |= XCB_CONFIG_WINDOW_STACK_MODE;
     fprintf(stderr, "%s\n", "reconfiguring window");
     xcb_configure_window(conn, win, mask, values);
+    //apply_mask(7);
     xcb_map_window(conn, win);
 }
+/*
+void client::apply_mask() {
+    xcb_pixmap_t pmask = xcb_generate_id(conn);
+    xcb_create_pixmap(conn, 1, pmask, win, dw, dh);
+    // make graphics context 4 drawing
+    xcb_gcontext_t gc = xcb_generate_id(conn);
+    xcb_create_gc(conn, gc, pmask, XCB_GC_FOREGROUND, (uint32_t[]){0, 0});
+    // make background black
+    xcb_rectangle_t bg = {0, 0, ww, wh};
+    xcb_poly_fill_rectangle(conn, pmask, gc, 1, &bg);
+    
+    // make mask white
+    xcb_change_gc(conn, gc, XCB_GC_FOREGROUND, (uint32_t[]){1, 0});
+    rounded(pmask, gc, 0, 0, ww, wh, 5);
 
-void client::mask() {
+    xcb_shape_mask(conn, XCB_SHAPE_SO_SET, XCB_SHAPE_SK_CLIP, win, 0, 0, pmask);
+    xcb_shape_mask(conn, XCB_SHAPE_SO_SET, XCB_SHAPE_SK_BOUNDING, win, 0, 0, pmask);
 
+    uint32_t values = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+    xcb_change_window_attributes(conn, win, XCB_CW_EVENT_MASK, &values);
+    
+    xcb_free_pixmap(conn, pmask);
+    xcb_free_gc(conn, gc);
+}
+*/
+
+void client::apply_mask(int diam) {
+    // create roundedness
+    xcb_pixmap_t pixmask = xcb_generate_id(conn);
+    xcb_create_pixmap(conn, 1, pixmask, win, dw, dh);
+
+    xcb_gcontext_t black = xcb_generate_id(conn);
+    xcb_gcontext_t white = xcb_generate_id(conn);
+    uint32_t b = 0;
+    uint32_t w = 1;
+    xcb_create_gc(conn, black, pixmask, XCB_GC_FOREGROUND, &b);
+    xcb_create_gc(conn, white, pixmask, XCB_GC_FOREGROUND, &w);
+   /* 
+    // rectangles for the mask
+    xcb_rectangle_t rects[] = {
+        {diam / 2, 0, dw - diam, dh},
+        {0, diam / 2, diam / 2, dh - diam},
+        {dw - diam / 2, diam / 2, diam / 2, dh - diam},
+    };
+    // rounded corners
+    xcb_arc_t arcs[] = {
+        {  0,    0,    diam, diam, 0, 360 << 6 },
+        {  0,    dh - diam, diam, diam, 0, 360 << 6 },
+        { dw - diam, 0,    diam, diam, 0, 360 << 6 },
+        { dw - diam, dh - diam, diam, diam, 0, 360 << 6 },
+    };
+    xcb_poly_fill_rectangle(conn, pixmask, white, 3, rects);
+    xcb_poly_fill_arc(conn, pixmask, white, 4, arcs);
+    */
+//    xcb_rectangle_t bg = {0, 0, ww, wh};
+//    xcb_poly_fill_rectangle(conn, pixmask, black, 1, &bg);
+    rounded(pixmask, white, 0, 0, ww, wh, 7);
+
+    // apply mask
+    xcb_shape_mask(conn, XCB_SHAPE_SO_SET, XCB_SHAPE_SK_CLIP, win, 0, 0, pixmask);
+    xcb_shape_mask(conn, XCB_SHAPE_SO_SET, XCB_SHAPE_SK_BOUNDING, win, 0, 0, pixmask);
+    // change attributes
+    uint32_t values = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+    xcb_change_window_attributes(conn, win, XCB_CW_EVENT_MASK, &values);
+    fprintf(stderr, "%s\n", "mask applied");
+
+    xcb_free_pixmap(conn, pixmask);
+    xcb_free_gc(conn, black);
+    xcb_free_gc(conn, white);
+
+    xcb_flush(conn);
 }
 
 void client::rounded(xcb_pixmap_t pixmap, xcb_gcontext_t gc,
