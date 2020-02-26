@@ -57,16 +57,16 @@ void create_decorations(cwindow *cw) {
 	/* calculate parent window dimentions */
 	int x = cw->dims.x;
 	int y = cw->dims.y;
-	int w = cw->dims.w + 2 * conf_b_width + 2 * conf_i_width;
-	int h = cw->dims.h + 2 * conf_b_width + conf_t_height + 2 * conf_i_width;
+	int w = cw->dims.w + 2 * conf.b_width + 2 * conf.i_width;
+	int h = cw->dims.h + 2 * conf.b_width + conf.t_height + 2 * conf.i_width;
 
 	/* calculate dummy window dimentions */
 	/* now we want to make our inner border */
 	/* create the border itself */
 	/* dummy variables for the border */
 	int side, top;
-	side = conf_b_width + conf_i_width;
-	top = conf_t_height + conf_b_width + conf_i_width;
+	side = conf.b_width + conf.i_width;
+	top = conf.t_height + conf.b_width + conf.i_width;
 	/* where we store the data to send */
 	unsigned long data[4];
 	data[0] = 100;
@@ -81,27 +81,27 @@ void create_decorations(cwindow *cw) {
 	XClearWindow(display, cw->window);
  
 	/* create the border window */
-	Window dec = XCreateSimpleWindow(display, root, x, y, w, h, 0, conf_f_color, conf_f_color);
+	Window dec = XCreateSimpleWindow(display, root, x, y, w, h, 0, conf.f_color, conf.f_color);
 	pix_mask(dec, x, y, w, h, false);
 	/* assign the border window */
 	cw->dec = dec;
 	cw->decorated = true;
 	/* reparent client window */	
-	XReparentWindow(display, cw->window, cw->dec, conf_b_width + conf_i_width,
-		conf_b_width + conf_t_height + conf_i_width);
+	XReparentWindow(display, cw->window, cw->dec, conf.b_width + conf.i_width,
+		conf.b_width + conf.t_height + conf.i_width);
 
 	/* get exposure events for redrawing the title */
 	XSelectInput (display, cw->dec, ExposureMask);
 
 	pix_mask(cw->window, cw->dims.x, cw->dims.y, cw->dims.w, 
-		cw->dims.h, conf_t_height > 0 && conf_t_height > conf_radius);
+		cw->dims.h, conf.t_height > 0 && conf.t_height > conf.radius);
 
 	/* make window show up */
 	XMapWindow(display, cw->dec);
 	XMapWindow(display, cw->window);
-	draw_borders(cw, conf_f_color, conf_if_color);
+	draw_borders(cw, conf.f_color, conf.if_color);
 	
-	draw_text(cw, conf_tf_color);
+	draw_text(cw, conf.tf_color);
 	fprintf(stderr, "decorations created\n");
 }
 
@@ -112,7 +112,7 @@ void pix_mask(Window win, int x, int y, int w, int h, bool top) {
 	/* graphics context */
 	GC gc = XCreateGC(display, mask, 0, 0);
 
-	int diam = 2 * conf_radius;
+	int diam = 2 * conf.radius;
 	/* make the window mask all black */
 	XSetForeground(display, gc, 0);
 	XFillRectangle(display, mask, gc, 0, 0, w, h);
@@ -132,10 +132,10 @@ void pix_mask(Window win, int x, int y, int w, int h, bool top) {
 	XFillArc(display, mask, gc, w - diam, h - diam,
 			diam, diam, 64 * 270, 64 * 90);
 	/* middle rectangle */
-	XFillRectangle(display, mask, gc, conf_radius, 0, w - diam, h);
+	XFillRectangle(display, mask, gc, conf.radius, 0, w - diam, h);
 	/* left and right rectangles */
-	XFillRectangle(display, mask, gc, 0, conf_radius, conf_radius, h - diam);
-	XFillRectangle(display, mask, gc, w - conf_radius, conf_radius, conf_radius, h - diam);
+	XFillRectangle(display, mask, gc, 0, conf.radius, conf.radius, h - diam);
+	XFillRectangle(display, mask, gc, w - conf.radius, conf.radius, conf.radius, h - diam);
 	/* combine everything, masks out area painted black */
 	XShapeCombineMask(display, win, ShapeBounding, 0, 0, mask, ShapeSet);
 	XFreePixmap(display, mask);
@@ -172,15 +172,15 @@ void cwindow_del(cwindow *cw) {
 void cwindow_focus(cwindow *cw) {
 	if (cw != NULL && focused != NULL) {
 		fprintf(stderr, "unfocus color changed\n");
-		draw_borders(focused, conf_u_color, conf_iu_color);
+		draw_borders(focused, conf.u_color, conf.iu_color);
 		/* change text color */
-		draw_text(focused, conf_tu_color);
+		draw_text(focused, conf.tu_color);
 		/* send message to focus client */
 		send_icccm(cw, wm_atom[WMTakeFocus]);
 	}
 	if (cw != NULL) {
 		/* change color */
-		draw_borders(cw, conf_f_color, conf_if_color);
+		draw_borders(cw, conf.f_color, conf.if_color);
 		/* remove focus from old window */
 		XDeleteProperty(display, root, net_atom[NetActiveWindow]);
 		/* set focused client variable */
@@ -195,7 +195,7 @@ void cwindow_focus(cwindow *cw) {
 		/* bring to the front */
 		XRaiseWindow(display, cw->dec);
 		/* change text color */
-		draw_text(cw, conf_tf_color);
+		draw_text(cw, conf.tf_color);
 	}
 }
 
@@ -295,15 +295,15 @@ void change_color(cwindow *cw, unsigned long color) {
 void draw_borders(cwindow *cw, unsigned long o_color, unsigned long i_color) {
 
 	/* create rounded corners */
-	int w = cw->dims.w + 2 * (conf_i_width + conf_b_width);
-	int iw = cw->dims.w + 2 * (conf_i_width);
-	int h = cw->dims.h + (2 * conf_i_width) + (2 * conf_b_width) + conf_t_height;
-	int ih = cw->dims.h + (2 * conf_i_width);
+	int w = cw->dims.w + 2 * (conf.i_width + conf.b_width);
+	int iw = cw->dims.w + 2 * (conf.i_width);
+	int h = cw->dims.h + (2 * conf.i_width) + (2 * conf.b_width) + conf.t_height;
+	int ih = cw->dims.h + (2 * conf.i_width);
 	Pixmap borders = XCreatePixmap(display, cw->dec, w, h, DefaultDepth(display, XDefaultScreen(display)));
 	/* graphics context */
 	GC gc = XCreateGC(display, borders, 0, 0);
 
-	int diam = 2 * conf_radius;
+	int diam = 2 * conf.radius;
 	/* create the pixmap */
 	/* the outer border is the rest of the inside */
 	XSetForeground(display, gc, o_color);
@@ -312,19 +312,19 @@ void draw_borders(cwindow *cw, unsigned long o_color, unsigned long i_color) {
 	/* the inner border is a rounded rectangle */
 	XSetForeground(display, gc, i_color);
 	/* arcs used for corners and rectangles inside */
-//	XFillRectangle(display, borders, gc, conf_b_width + conf_i_width, conf_b_width,
-//	 cw->dims.w, ih + conf_t_height);
-//	XFillRectangle(display, borders, gc, conf_b_width, conf_b_width + conf_i_width,
-//	 iw, ih - (2 * conf_i_width) + conf_t_height);
+//	XFillRectangle(display, borders, gc, conf.b_width + conf.i_width, conf.b_width,
+//	 cw->dims.w, ih + conf.t_height);
+//	XFillRectangle(display, borders, gc, conf.b_width, conf.b_width + conf.i_width,
+//	 iw, ih - (2 * conf.i_width) + conf.t_height);
 
-	XFillArc(display, borders, gc, conf_b_width, conf_b_width,
+	XFillArc(display, borders, gc, conf.b_width, conf.b_width,
 			diam, diam, 64 * 90, 64 * 90);
-	XFillArc(display, borders, gc, w - (conf_b_width + diam), conf_b_width,
+	XFillArc(display, borders, gc, w - (conf.b_width + diam), conf.b_width,
 			diam, diam, 64 * 0, 64 * 90);
 
-	XFillArc(display, borders, gc, conf_b_width, h - conf_b_width - diam,
+	XFillArc(display, borders, gc, conf.b_width, h - conf.b_width - diam,
 			diam, diam, 64 * 180, 64 * 90);
-	XFillArc(display, borders, gc, w - (conf_b_width + diam), h - conf_b_width - diam,
+	XFillArc(display, borders, gc, w - (conf.b_width + diam), h - conf.b_width - diam,
 			diam, diam, 64 * 270, 64 * 90);
 
 	/* assign pixmap */

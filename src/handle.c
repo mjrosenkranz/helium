@@ -104,13 +104,13 @@ void handle_configure_request(XEvent *ev) {
     cw = get_cwindow_from_parent(cre->window);
 
     if (cw != NULL) {
-		int dec_w = wc.width + 2 * conf_b_width + 2 * conf_i_width;
-		int dec_h = wc.height + 2 * conf_b_width  + 2 * conf_i_width+ conf_t_height;
+		int dec_w = wc.width + 2 * conf.b_width + 2 * conf.i_width;
+		int dec_h = wc.height + 2 * conf.b_width  + 2 * conf.i_width+ conf.t_height;
 		XMoveResizeWindow(display, cw->dec, wc.x, wc.y, dec_w, dec_h);
 		pix_mask(cw->dec, wc.x, wc.y, dec_w, dec_h, false);
 
-		XMoveResizeWindow(display, cw->window, conf_b_width + conf_i_width, conf_b_width + conf_i_width + conf_t_height, wc.width, wc.height);
-		pix_mask(cw->window, conf_b_width + conf_i_width, conf_b_width + conf_i_width + conf_t_height, wc.width, wc.height, conf_t_height > 0 && conf_t_height > conf_radius);
+		XMoveResizeWindow(display, cw->window, conf.b_width + conf.i_width, conf.b_width + conf.i_width + conf.t_height, wc.width, wc.height);
+		pix_mask(cw->window, conf.b_width + conf.i_width, conf.b_width + conf.i_width + conf.t_height, wc.width, wc.height, conf.t_height > 0 && conf.t_height > conf.radius);
 		fprintf(stderr, "configured");
 	}
 
@@ -199,9 +199,9 @@ void handle_property_notify(XEvent *ev) {
 		XFree(tp.value);
 
 		if (cw == focused) {
-			draw_text(cw, conf_tf_color);
+			draw_text(cw, conf.tf_color);
 		} else {
-			draw_text(cw, conf_tu_color);
+			draw_text(cw, conf.tu_color);
 		}
 	}
 
@@ -220,9 +220,9 @@ void handle_expose(XEvent *ev) {
 	}
 
 	if (cw == focused) {
-		draw_text(cw, conf_tf_color);
+		draw_text(cw, conf.tf_color);
 	} else {
-		draw_text(cw, conf_tu_color);
+		draw_text(cw, conf.tu_color);
 	}
 
 	fprintf(stderr, "expose handled\n");
@@ -343,18 +343,18 @@ void handle_resize_relative(long *data) {
 		default :
 			break;
 	}
-	int dec_w = w + 2 * (conf_b_width + conf_i_width);
-	int dec_h = h + 2 * (conf_b_width + conf_i_width) + conf_t_height;
+	int dec_w = w + 2 * (conf.b_width + conf.i_width);
+	int dec_h = h + 2 * (conf.b_width + conf.i_width) + conf.t_height;
 	XMoveResizeWindow(display, focused->dec, x, y, dec_w, dec_h);
 	pix_mask(focused->dec, x, y, dec_w, dec_h, false);
 
-	XMoveResizeWindow(display, focused->window, conf_b_width + conf_i_width, conf_b_width + conf_i_width + conf_t_height, w, h);
-	pix_mask(focused->window, conf_b_width + conf_i_width, conf_b_width + conf_i_width + conf_t_height, w, h, conf_t_height > 0 && conf_t_height > conf_radius);
+	XMoveResizeWindow(display, focused->window, conf.b_width + conf.i_width, conf.b_width + conf.i_width + conf.t_height, w, h);
+	pix_mask(focused->window, conf.b_width + conf.i_width, conf.b_width + conf.i_width + conf.t_height, w, h, conf.t_height > 0 && conf.t_height > conf.radius);
 	focused->dims.x = x;
 	focused->dims.y = y;
 	focused->dims.w = w;
 	focused->dims.h = h;
-	draw_borders(focused, conf_f_color, conf_if_color);
+	draw_borders(focused, conf.f_color, conf.if_color);
 	fprintf(stderr, "resize relative event handled:\n");
 }
 
@@ -367,7 +367,7 @@ void handle_assign_tag(long *data) {
 	int tag = focused->tag;
 	focused->tag = new_tag;
 	/* change tag in title */
-	draw_text(focused, conf_tf_color);
+	draw_text(focused, conf.tf_color);
 
 	if (new_tag > NUM_TAGS || new_tag < 0) {
 		fprintf(stderr, "tag %d does not exist\n", new_tag);
