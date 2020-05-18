@@ -1,7 +1,0 @@
-#!/bin/bash
-
-xrdb -merge $HOME/dots/xfiles/xres &
-
-sxhkd -c $HOME/wndwmngr/examples/keys &
-
-exec $HOME/wndwmngr/helium

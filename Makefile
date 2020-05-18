@@ -1,33 +1,31 @@
-# compiles the program. -o is the ouput binary name
-# -l is the libraries needed
-#PREFIX?=/usr/X11R6
-X11_INCLUDE?=/usr/include
-PREFIX?=/usr
 
-override CFLAGS +=-s -I${X11_INCLUDE} -I${X11_INCLUDE}/freetype2
-override LDFLAGS +=-L${PREFIX}/lib -lX11 -lXext -lm -lXft
+CXX := g++
+CXXFLAGS := -Wall -Wextra -g
 
-SRC = wm handle hints cwindow vector
-OBJ = $(patsubst %, src/%.o, $(SRC))
+LIBS = -lxcb
 
-all: helium ipc clean_src
+TARGETS = helium hctrl
+OBJS = helium.o client.o util.o
 
-%.o: %.c
-	@echo $@
-	$(CC) -o $@ -c $(CFLAGS) $<
+all: $(TARGETS)
 
-helium: $(OBJ)
-	$(CC) $(OBJ) -g -o helium $(CFLAGS) $(LDFLAGS)
+%.o: %.cpp
+	$(CXX) -c $<
 
-ipc: src/ipc.o
-	$(CC) src/ipc.o -g -o heliumc $(CFLAGS) $(LDFLAGS)
+helium: $(OBJS)
+	$(CXX) -o $@ $(LIBS) $(CXXFLAGS) $^
 
-# deletes excess files
-	#rm -f heliumc
-clean_src:
-	rm -f src/*.o
+hctrl: hctrl.o
+	$(CXX) -o $@ $(LIBS) $(CXXFLAGS) $^
 
 clean:
-	rm -f helium
-	rm -f heliumc
-	rm -f src/*.o
+	@echo "removing object files:"
+	rm -rf *.o
+	rm -f $(TARGETS)
+
+server:
+	@echo "starting server"
+	@pidof Xephyr &> /dev/null || Xephyr -screen 800x600 :1 &> /dev/null & 
+
+run: server helium
+	DISPLAY=:1 ./helium
