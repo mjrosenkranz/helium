@@ -1,9 +1,4 @@
-/*
- * This file contains the meat of the wm.
- * 
- */
-#include <cstdio>
-#include <cstdlib>
+// This file contains the meat of the wm.
 #include <xcb/xcb.h>
 #include <vector>
 #include <deque>
@@ -11,8 +6,14 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <iterator>
+#include <map>
 
 #include "client.h"
+#include "msg.h"
 #include "helium.h"
 #include "util.h"
 
@@ -26,6 +27,8 @@ struct sockaddr_un local, remote;
 int slen;
 // list of all clients in their tags
 std::vector<Client *> tags[NUMTAGS + 1];
+// status of these tags
+bool visible[NUMTAGS + 1];
 // clients in their focus order
 std::deque<Client *> focus_queue;
 
@@ -34,10 +37,13 @@ xcb_connection_t *conn = NULL;
 xcb_screen_t *screen = NULL;
 // number of screens connected
 int num_screens;
-// the current event we are looking at
-//static xcb_generic_event_t *ev  = NULL;
+
 // a list of events we support
 static void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
+
+// a map of strings to their corresponding functions
+typedef std::string (*msg_handler)(std::vector<std::string>);
+std::map<std::string, msg_handler> msg_map;
 
 // utility functions
 static void cleanup();
@@ -54,17 +60,15 @@ static bool setup(int);
 static bool socket_setup();
 static void rw_socket();
 static void run();
+static bool handle_msg(char *);
 
 int main(int argc, char **argv) {
 	// screen number
 	int scrnum = 0;
-	// at exit we want to clean shit up
-	atexit(cleanup);
-
 
 	// try to setup connection
 	if (xcb_connection_has_error(conn = xcb_connect(NULL, &scrnum))) {
-		printf("%s\n", "could not connect!");
+		std::clog << "could not connect!\n";
 		exit(1);
 	}
 
@@ -76,89 +80,9 @@ int main(int argc, char **argv) {
 
 	// setup
 	if(setup(scrnum) && socket_setup()) {
-		printf("%s\n", "connected");
+		std::clog << "connected to display!\n";
 		run();
 	}
-}
-
-void cleanup() {
-	// clean stuff up
-	// free all vectors
-	
-	for (int i = 0; i <= NUMTAGS; i++) {
-		for (Client *c : tags[i]) {
-			free(c);
-		}
-		tags[i].clear();
-	}
-	fprintf(stderr, "%s\n", "all cleaned up");
-}
-
-// grets the screen of the display
-xcb_screen_t *
-xcb_screen_of_display(xcb_connection_t *con, int s)
-{
-	xcb_screen_iterator_t iter;
-	iter = xcb_setup_roots_iterator(xcb_get_setup(con));
-	for (; iter.rem; --s, xcb_screen_next(&iter))
-		if (s == 0)
-			return iter.data;
-
-	return NULL;
-}
-
-void printevent(xcb_generic_event_t *ev) {
-	printf("event: %d\n", ev->response_type & ~0x80);
-}
-
-void map_request(xcb_generic_event_t *ev) {
-	printf("event: %d, map request recieved\n", ev->response_type & ~0x80);
-
-	xcb_map_request_event_t *e = (xcb_map_request_event_t *) ev;
-
-	// check if we are already managing this window
-	// if so we dont want to do anything
-	if (NULL != get_client(&e->window)) {
-		fprintf(stderr, "client %x already managed\n", e->window);
-		return;
-	}
-		
-	
-	// if not set up a new client
-	Client *c = (Client *) malloc(sizeof(Client));
-	*c = Client(e->window, conn);
-	c->map(conn);
-	c->add_to_tag(0);
-	c->print();
-	c->focus(conn);
-	c->raise(conn);
-	// map the window
-	xcb_flush(conn);
-	printf("map request handled\n");
-}
-
-static void unmap_notify(xcb_generic_event_t *ev) {
-	printf("event: %d, unmap notify recieved\n", ev->response_type & ~0x80);
-}
-
-static void destroy_notify(xcb_generic_event_t *ev) {
-	printf("event: %d, destroy notify recieved\n", ev->response_type & ~0x80);
-
-	xcb_destroy_notify_event_t *e = (xcb_destroy_notify_event_t *) ev;
-
-	Client *c = get_client(&e->window);
-	// check if we manage this window
-	if (c == NULL) {
-		fprintf(stderr, "client %x not managed\n", e->window);
-		return;
-	}
-	// remove the window from tags
-	c->remove_tag();
-	// remove the window from the focus queue
-	c->remove_focus();
-	// free the pointer
-	print_tags();
-	free(c);
 }
 
 bool setup(int scrnum) {
@@ -186,7 +110,7 @@ bool setup(int scrnum) {
 	xcb_flush(conn);
 
 	if (error){
-		fprintf(stderr,"%s\n","could not connect");
+		std::clog << "could not connect to server\n";
 		free(error);
 		return false;
   }
@@ -206,6 +130,15 @@ bool setup(int scrnum) {
 	events[XCB_BUTTON_PRESS]        = buttonpress;
 	events[XCB_CLIENT_MESSAGE]      = clientmessage;
 	*/
+
+	// setup message handling
+	msg_map["move"] = &msg_move;
+	msg_map["tags"] = &msg_tags;
+
+	// set all tags to visible
+	for (int i = 0; i < NUMTAGS + 1; ++i) {
+		visible[i] = true;
+	}
 
   return true;
 }
@@ -240,38 +173,162 @@ bool socket_setup() {
 	return true;
 }
 
-void rw_socket(void) {
-		// store the length of the message recieved
-		int n;
-		// buffer for our messages
-		char buff[BUFFLEN];
-		unsigned int t = sizeof(remote);
-		// attempt to accept a new connection
-		if ((socket2 = accept(socket_fd, (struct sockaddr *) &remote, &t)) == -1) {
-			perror("accept");
-			exit(1);
+void cleanup() {
+	// clean stuff up
+	// free all vectors
+	
+	for (int i = 0; i <= NUMTAGS; i++) {
+		for (Client *c : tags[i]) {
+			free(c);
 		}
-		fprintf(stderr, "connected to socket\n");
-
-		// recieve message
-		if ((n = recv(socket2, buff, BUFFLEN, 0)) >= 0 ) {
-			// end the string at its end (not the buffer's)
-			buff[n] = '\0';
-			// we have a message! print it
-			fprintf(stderr, "msg: %s\n", buff);
-		} else {
-			perror("recv");
-		}
-
-		// attempts to send our response
-		if (send(socket2, "response", 8, 0) < 0) {
-			perror("send");
-		}
-
-		// close the socket
-		close(socket2);
+		tags[i].clear();
+	}
+	std::clog <<  "all cleaned up\n";
 }
 
+// grets the screen of the display
+xcb_screen_t *
+xcb_screen_of_display(xcb_connection_t *con, int s)
+{
+	xcb_screen_iterator_t iter;
+	iter = xcb_setup_roots_iterator(xcb_get_setup(con));
+	for (; iter.rem; --s, xcb_screen_next(&iter))
+		if (s == 0)
+			return iter.data;
+
+	return NULL;
+}
+
+/*
+ * Event stuff
+ */
+void printevent(xcb_generic_event_t *ev) {
+	std::clog << "event: " << (ev->response_type & ~0x80) << "\n";
+}
+
+void map_request(xcb_generic_event_t *ev) {
+	std::clog << "event: " << (ev->response_type & ~0x80) << " map request recieved\n";
+	xcb_map_request_event_t *e = (xcb_map_request_event_t *) ev;
+
+	// check if we are already managing this window
+	// if so we dont want to do anything
+	if (NULL != get_client(&e->window)) {
+		std::clog << "client " << std::hex << e->window << "already managed\n";
+		return;
+	}
+		
+	
+	// if not set up a new client
+	Client *c = (Client *) malloc(sizeof(Client));
+	*c = Client(e->window, conn);
+	c->map(conn);
+	c->add_to_tag(0);
+	c->print();
+	c->focus(conn);
+	//c->raise(conn);
+	// map the window
+	xcb_flush(conn);
+	std::clog << "map request handled\n";
+}
+
+static void unmap_notify(xcb_generic_event_t *ev) {
+	std::clog << "event: " << (ev->response_type & ~0x80) << " unmap notify recieved\n";
+}
+
+static void destroy_notify(xcb_generic_event_t *ev) {
+	std::clog << "event: " << (ev->response_type & ~0x80) << " destroy notify recieved\n";
+
+	xcb_destroy_notify_event_t *e = (xcb_destroy_notify_event_t *) ev;
+
+	Client *c = get_client(&e->window);
+	// check if we manage this window
+	if (c == NULL) {
+		std::clog << "client " << std::hex << e->window << " not managed\n";
+		return;
+	}
+
+	// focus next in queue if we are the front
+	if (focus_queue.front() == c) {
+		// remove the window from the focus queue
+		c->remove_focus();
+		std::clog << "removed from front\n";
+		if (focus_queue.size() > 0) {
+			focus_queue.front()->focus(conn);
+		}
+	} else {
+		// remove the window from the focus queue
+		c->remove_focus();
+	}
+	// remove the window from tags
+	c->remove_tag();
+	// free the pointer
+	free(c);
+
+}
+
+
+
+/*
+ * msgs
+ */
+bool handle_msg(char *buff) {
+
+	// what are we telling our homie?
+	std::string response;
+
+	// convert the buffer to a stream
+	std::istringstream ss(buff);
+
+	// vectorize our stream
+	std::vector<std::string> sv(
+		(std::istream_iterator<std::string>(ss)), 
+		std::istream_iterator<std::string>());
+
+	// check if we can handle this kind of message
+	if (msg_map.count(sv[0]) == 0) {
+		std::clog << "msg " << sv[0] << " does not exist\n";
+		response = "fail";
+	} else {
+		response = msg_map[sv[0]](sv);
+	}
+	
+	// attempts to send our response
+	if (send(socket2, response.c_str(), response.length(), 0) < 0) {
+		perror("send");
+	}
+
+	return true;
+}
+
+void rw_socket(void) {
+	// store the length of the message recieved
+	int n;
+	// buffer for our messages
+	char buff[BUFFLEN];
+	unsigned int t = sizeof(remote);
+	// attempt to accept a new connection
+	if ((socket2 = accept(socket_fd, (struct sockaddr *) &remote, &t)) == -1) {
+		perror("accept");
+		exit(1);
+	}
+	// std::clog << "connected to socket\n";
+
+	// recieve message
+	if ((n = recv(socket2, buff, BUFFLEN, 0)) >= 0 ) {
+		// end the string at its end (not the buffer's)
+		buff[n] = '\0';
+
+		handle_msg(buff);
+	} else {
+		perror("recv");
+	}
+
+	// close the socket
+	close(socket2);
+}
+
+
+// main loop
 void run(void) {
 	xcb_generic_event_t *ev  = NULL;
 
@@ -287,7 +344,6 @@ void run(void) {
 		// check if anyone is connected to the socket
 		if (select(max_fd + 1, &descriptors, NULL, NULL, NULL) > 0) {
 			if (FD_ISSET(socket_fd, &descriptors)) {
-				//fprintf(stderr, "Socket connected\n");
 				rw_socket();
 			}
 

@@ -1,11 +1,13 @@
-#include "client.h"
-#include "helium.h"
-#include "util.h"
-
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <deque>
 #include <cstdlib>
+#include <iostream>
+
+#include "client.h"
+#include "helium.h"
+#include "util.h"
+
 
 Client::Client (xcb_window_t _id, xcb_connection_t *conn) {
 	id = _id;
@@ -32,8 +34,16 @@ Client::Client (xcb_window_t _id, xcb_connection_t *conn) {
 }
 
 void Client::print(void) {
-	fprintf(stderr, "id: %x, tag: %d idx: %d x: %d, y: %d, w: %d, h: %d\n",
-			id, tag, idx, x, y, w, h);
+
+	std::clog << "id: " << std::hex << id
+		<< " tag: " << std::hex << tag << std::dec
+		<< " idx: " << idx
+		<< " x: " << x
+		<< " y: " << y
+		<< " w: " << w
+		<< " h: " << h
+		<< std::endl;
+
 }
 
 
@@ -47,15 +57,6 @@ void Client::map(xcb_connection_t *conn) {
 	xcb_map_window(conn, id);
 }
 
-void Client::focus(xcb_connection_t *conn) {
-	// focus the client
-	// first add it to the front of the focus queue
-	focus_queue.push_front(this);
-	xcb_set_input_focus(conn, XCB_INPUT_FOCUS_POINTER_ROOT, id,
-			XCB_CURRENT_TIME);
-	xcb_flush(conn);
-	print_focus();
-}
 
 void Client::add_to_tag(int t) {
 	// check if we have a valid tag number
@@ -83,6 +84,25 @@ void Client::add_to_tag(int t) {
 
 void Client::remove_tag(void) {
 	tags[tag].erase(tags[tag].begin() + idx);
+	update_tag(tag);
+}
+
+void Client::focus(xcb_connection_t *conn) {
+	// remove from the focuse queue
+	remove_focus();
+	
+	// add to the front of the focus queue
+	focus_queue.push_front(this);
+	// focus the client
+	xcb_set_input_focus(conn, XCB_INPUT_FOCUS_POINTER_ROOT, id,
+			XCB_CURRENT_TIME);
+
+	// raise the window
+	uint32_t values[] = { XCB_STACK_MODE_ABOVE };
+
+	xcb_configure_window(conn, id, XCB_CONFIG_WINDOW_STACK_MODE, values);
+
+	xcb_flush(conn);
 }
 
 void Client::remove_focus(void) {
@@ -92,9 +112,11 @@ void Client::remove_focus(void) {
 	}
 }
 
+/*
 void Client::raise(xcb_connection_t *conn) {
 	uint32_t values[] = { XCB_STACK_MODE_ABOVE };
 
 	xcb_configure_window(conn, id, XCB_CONFIG_WINDOW_STACK_MODE, values);
 	xcb_flush(conn);
 }
+*/
