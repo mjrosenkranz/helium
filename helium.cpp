@@ -132,8 +132,11 @@ bool setup(int scrnum) {
 	*/
 
 	// setup message handling
-	msg_map["move"] = &msg_move;
-	msg_map["tags"] = &msg_tags;
+	msg_map["move"] = &msg_move_relative;
+	msg_map["move_to"] = &msg_move_absolute;
+	msg_map["print_tags"] = &msg_print_tags;
+	msg_map["tag"] = &msg_change_tag;
+	msg_map["focus"] = &msg_focus;
 
 	// set all tags to visible
 	for (int i = 0; i < NUMTAGS + 1; ++i) {
@@ -221,10 +224,10 @@ void map_request(xcb_generic_event_t *ev) {
 	// if not set up a new client
 	Client *c = (Client *) malloc(sizeof(Client));
 	*c = Client(e->window, conn);
-	c->map(conn);
-	c->add_to_tag(0);
+	c->map();
+	c->change_tag(0);
 	c->print();
-	c->focus(conn);
+	c->focus();
 	//c->raise(conn);
 	// map the window
 	xcb_flush(conn);
@@ -253,7 +256,7 @@ static void destroy_notify(xcb_generic_event_t *ev) {
 		c->remove_focus();
 		std::clog << "removed from front\n";
 		if (focus_queue.size() > 0) {
-			focus_queue.front()->focus(conn);
+			focus_queue.front()->focus();
 		}
 	} else {
 		// remove the window from the focus queue

@@ -51,7 +51,6 @@ Client *get_client(xcb_drawable_t *id) {
 		if (tags[i].size() > 0) {
 			// if not print all the windows
 			for (Client *c : tags[i]) {
-				c->print();
 				if (c->match_id(*id)) {
 					return c;
 				}

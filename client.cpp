@@ -9,9 +9,10 @@
 #include "util.h"
 
 
-Client::Client (xcb_window_t _id, xcb_connection_t *conn) {
+Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 	id = _id;
 	tag = -1;
+	conn = _conn;
 
 	// set geometry to dummy values
 	x = 0;
@@ -53,12 +54,12 @@ bool Client::match_id(xcb_drawable_t _id) {
 }
 
 
-void Client::map(xcb_connection_t *conn) {
+void Client::map(void) {
 	xcb_map_window(conn, id);
 }
 
 
-void Client::add_to_tag(int t) {
+void Client::change_tag(int t) {
 	// check if we have a valid tag number
 	if ( t > NUMTAGS + 1 || t < 0 )
 		return;
@@ -87,8 +88,8 @@ void Client::remove_tag(void) {
 	update_tag(tag);
 }
 
-void Client::focus(xcb_connection_t *conn) {
-	// remove from the focuse queue
+void Client::focus(void) {
+	// remove this window from the focuse queue
 	remove_focus();
 	
 	// add to the front of the focus queue
@@ -112,11 +113,24 @@ void Client::remove_focus(void) {
 	}
 }
 
-/*
-void Client::raise(xcb_connection_t *conn) {
-	uint32_t values[] = { XCB_STACK_MODE_ABOVE };
+void Client::move_relative(int _x, int _y) {
+	x += _x;
+	y += _y;
+	int values[] = { x, y};
 
-	xcb_configure_window(conn, id, XCB_CONFIG_WINDOW_STACK_MODE, values);
+	xcb_configure_window (conn, id,
+			XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
+
 	xcb_flush(conn);
 }
-*/
+
+void Client::move_absolute(int _x, int _y) {
+	x = _x;
+	y = _y;
+	int values[] = { x, y};
+
+	xcb_configure_window (conn, id,
+			XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
+
+	xcb_flush(conn);
+}
