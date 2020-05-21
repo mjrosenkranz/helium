@@ -22,7 +22,9 @@ class Client {
 		void focus(void);
 		void move_relative(int, int);
 		void move_absolute(int, int);
-		bool resize_relative(std::string dir, int amt);
+		bool resize_relative(std::string, int);
+		void resize_to(int, int);
+		void resize_mouse(int, int, int, int);
 };
 
 #endif

@@ -38,7 +38,7 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 	xcb_grab_button(conn, false, id, XCB_EVENT_MASK_BUTTON_PRESS,
 									// stop the cursor  continue the keyboard
 	                XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_ASYNC,
-	                XCB_NONE, XCB_NONE, XCB_BUTTON_MASK_1, XCB_NONE);
+	                XCB_NONE, XCB_NONE, XCB_BUTTON_INDEX_ANY, XCB_MOD_MASK_ANY);
 
 	xcb_flush(conn);
 }
@@ -170,4 +170,37 @@ bool Client::resize_relative(std::string dir, int amt) {
 	xcb_flush(conn);
 	return true;
 
+}
+
+
+void Client::resize_to(int nw, int nh) {
+
+	w = nw;
+	h = nh;
+
+	int values[] = { (int) w, (int) h };
+
+	xcb_configure_window (conn, id,
+			XCB_CONFIG_WINDOW_WIDTH
+			| XCB_CONFIG_WINDOW_HEIGHT,
+			values);
+
+	xcb_flush(conn);
+}
+
+void Client::resize_mouse(int _x, int lx, int _y, int ly) {
+	int rx = _x - x;
+	int ry = _y - y;
+	int dw = _x - lx;
+	int dh = _y - ly;
+	if (rx > (w / 2)) {
+		resize_relative("east", dw);
+	} else {
+		resize_relative("west", -dw);
+	}
+	if (ry > (h / 2)) {
+		resize_relative("south", dh);
+	} else {
+		resize_relative("north", -dh);
+	}
 }

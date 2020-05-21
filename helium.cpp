@@ -38,6 +38,9 @@ xcb_screen_t *screen = NULL;
 // number of screens connected
 int num_screens;
 
+// config stuff
+std::map<std::string, unsigned int> config;
+
 // a list of events we support
 static void (*events[XCB_NO_OPERATION])(xcb_generic_event_t *e);
 
@@ -139,6 +142,12 @@ bool setup(int scrnum) {
 	msg_map["tag"] = &msg_change_tag;
 	msg_map["focus"] = &msg_focus;
 	msg_map["resize"] = &msg_resize;
+
+	// default config stuff
+	config["move_mod"] = XCB_MOD_MASK_4;
+	config["resize_mod"] = XCB_MOD_MASK_2;
+	config["border_color"] = XCB_MOD_MASK_2;
+
 
 	// set all tags to visible
 	for (int i = 0; i < NUMTAGS + 1; ++i) {
@@ -285,9 +294,78 @@ void button_press(xcb_generic_event_t *ev){
 	Client *c = get_client(&q->child);
 	if (c != NULL)
 		c->focus();
+
+	// check if alt is down
+	if (e->state != XCB_NONE) {
+		// in that case we want to capture the cursor movement
+
+		xcb_grab_pointer_reply_t *reply = xcb_grab_pointer_reply(conn,
+				xcb_grab_pointer(conn, 0, screen->root,
+					XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_BUTTON_MOTION,
+					XCB_GRAB_MODE_ASYNC,
+					XCB_GRAB_MODE_ASYNC, XCB_NONE, XCB_NONE, XCB_CURRENT_TIME), NULL);
+
+		// check if this worked
+		if (reply == NULL || reply->status != XCB_GRAB_STATUS_SUCCESS) {
+			std::clog << "couldn't grab pointer\n";
+			free(reply);
+			return;
+		}
+		free(reply);
+
+		xcb_generic_event_t *tmpev;
+		bool grabbing = true;
+		int lx = q->root_x;
+		int ly = q->root_y;
+		int dx, dy = 0;
+		xcb_motion_notify_event_t *mv;
+
+		do {
+
+
+			while(!(tmpev = xcb_wait_for_event(conn)))
+						xcb_flush(conn);
+
+			switch (tmpev->response_type & ~0x80) {
+
+				case XCB_MOTION_NOTIFY:
+					mv = (xcb_motion_notify_event_t*) tmpev;
+
+					if (e->state == config["move_mod"]) {
+
+						c->move_relative(mv->root_x - lx, mv->root_y - ly);
+					} else {
+						c->resize_mouse(mv->root_x, lx, mv->root_y, ly);
+					}
+
+					// set the last location
+					lx = mv->root_x;
+					ly = mv->root_y;
+
+					xcb_flush(conn);
+					break;
+				//case XCB_KEY_PRESS:
+				//case XCB_KEY_RELEASE:
+				case XCB_BUTTON_PRESS:
+				case XCB_BUTTON_RELEASE:
+					grabbing = false;
+					break;
+			}
+
+			free(tmpev);
+		} while (grabbing);
+		// ungrab the pointer
+		xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
+
+	}
+
+	free(q);
+
+
 	// allow the pointer to be used
 	xcb_allow_events(conn, XCB_ALLOW_SYNC_POINTER, e->time);
 	xcb_flush(conn);
+	std::clog << "button press handled\n";
 }
 
 /*
