@@ -1,4 +1,3 @@
-#include <cstdio>
 #include <xcb/xcb.h>
 
 #ifndef CLIENT_H
@@ -23,6 +22,7 @@ class Client {
 		void focus(void);
 		void move_relative(int, int);
 		void move_absolute(int, int);
+		bool resize_relative(std::string dir, int amt);
 };
 
 #endif

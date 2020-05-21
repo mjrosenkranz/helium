@@ -32,10 +32,18 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 	}
 
 	free(geom);
+
+	// let us get events for this window
+	// this gets the button with not modifier
+	xcb_grab_button(conn, false, id, XCB_EVENT_MASK_BUTTON_PRESS,
+									// stop the cursor  continue the keyboard
+	                XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_ASYNC,
+	                XCB_NONE, XCB_NONE, XCB_BUTTON_MASK_1, XCB_NONE);
+
+	xcb_flush(conn);
 }
 
 void Client::print(void) {
-
 	std::clog << "id: " << std::hex << id
 		<< " tag: " << std::hex << tag << std::dec
 		<< " idx: " << idx
@@ -44,7 +52,6 @@ void Client::print(void) {
 		<< " w: " << w
 		<< " h: " << h
 		<< std::endl;
-
 }
 
 
@@ -127,10 +134,40 @@ void Client::move_relative(int _x, int _y) {
 void Client::move_absolute(int _x, int _y) {
 	x = _x;
 	y = _y;
-	int values[] = { x, y};
+	int values[] = { x, y };
 
 	xcb_configure_window (conn, id,
 			XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
 
 	xcb_flush(conn);
+}
+
+bool Client::resize_relative(std::string dir, int amt) {
+
+	if (dir.compare("north") == 0) {
+		y -= amt;
+		h += amt;
+	} else if (dir.compare("south") == 0) {
+		h += amt;
+	} else if (dir.compare("east") == 0) {
+		w += amt;
+	} else if (dir.compare("west") == 0) {
+		x -= amt;
+		w += amt;
+	} else {
+		return false;
+	}
+
+	int values[] = { x, y, (int) w, (int) h };
+
+	xcb_configure_window (conn, id,
+			XCB_CONFIG_WINDOW_X
+			| XCB_CONFIG_WINDOW_Y
+			| XCB_CONFIG_WINDOW_WIDTH
+			| XCB_CONFIG_WINDOW_HEIGHT,
+			values);
+
+	xcb_flush(conn);
+	return true;
+
 }

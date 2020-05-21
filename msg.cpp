@@ -31,6 +31,9 @@ std::string msg_move_relative(std::vector<std::string> args) {
 	// get the currently focused window
 	Client *c = focus_queue.front();
 
+	if (c == NULL)
+		return "no window focused";
+
 	c->move_relative(x, y);
 
 	return "success";
@@ -61,6 +64,9 @@ std::string msg_move_absolute(std::vector<std::string> args) {
 	// get the currently focused window
 	Client *c = focus_queue.front();
 
+	if (c == NULL)
+		return "no window focused";
+
 	c->move_absolute(x, y);
 
 	return "success";
@@ -82,6 +88,9 @@ std::string msg_change_tag(std::vector<std::string> args) {
 
 	// get the currently focused window
 	Client *c = focus_queue.front();
+
+	if (c == NULL)
+		return "no window focused";
 
 	c->change_tag(t);
 
@@ -118,6 +127,9 @@ std::string msg_focus(std::vector<std::string> args) {
 				focus_queue.end());
 
 		c = focus_queue.front();
+
+		if (c == NULL)
+			return "no window focused";
 		c->focus();
 		return "success";
 	}
@@ -127,6 +139,8 @@ std::string msg_focus(std::vector<std::string> args) {
 				focus_queue.end());
 
 		c = focus_queue.front();
+		if (c == NULL)
+			return "no window focused";
 		c->focus();
 		return "success";
 	}
@@ -145,4 +159,28 @@ std::string msg_focus(std::vector<std::string> args) {
 	} catch(std::invalid_argument& e) {
 		return args[1] + " not a valid direction";
 	}
+}
+
+std::string msg_resize(std::vector<std::string> args) {
+
+	Client *c = focus_queue.front();
+
+	if (c == NULL)
+		return "no window focused";
+
+	if (args.size() < 3) 
+		return "need a side and amount";
+
+	try {
+		int amt = std::stoi(args[2], NULL);
+
+		if (!c->resize_relative(args[1], amt))
+			return args[1] + " not a valid direction";
+
+		return "success";
+		
+	} catch(std::invalid_argument& e) {
+		return args[2] + " not a valid amount";
+	}
+
 }

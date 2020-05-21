@@ -54,6 +54,7 @@ static void printevent(xcb_generic_event_t *);
 static void map_request(xcb_generic_event_t *);
 static void destroy_notify(xcb_generic_event_t *);
 static void unmap_notify(xcb_generic_event_t *);
+static void button_press(xcb_generic_event_t *ev);
 
 // functions
 static bool setup(int);
@@ -122,12 +123,12 @@ bool setup(int scrnum) {
 	// assign events we actually have
 	events[XCB_MAP_REQUEST]					= map_request;
 	events[XCB_DESTROY_NOTIFY]      = destroy_notify;
+	events[XCB_BUTTON_PRESS]        = button_press;
 	//events[XCB_UNMAP_NOTIFY]        = unmap_notify;
 	/*
 	events[XCB_ENTER_NOTIFY]        = enternotify;
 	events[XCB_CONFIGURE_NOTIFY]    = confignotify;
 	events[XCB_CIRCULATE_REQUEST]   = circulaterequest;
-	events[XCB_BUTTON_PRESS]        = buttonpress;
 	events[XCB_CLIENT_MESSAGE]      = clientmessage;
 	*/
 
@@ -137,6 +138,7 @@ bool setup(int scrnum) {
 	msg_map["print_tags"] = &msg_print_tags;
 	msg_map["tag"] = &msg_change_tag;
 	msg_map["focus"] = &msg_focus;
+	msg_map["resize"] = &msg_resize;
 
 	// set all tags to visible
 	for (int i = 0; i < NUMTAGS + 1; ++i) {
@@ -234,11 +236,11 @@ void map_request(xcb_generic_event_t *ev) {
 	std::clog << "map request handled\n";
 }
 
-static void unmap_notify(xcb_generic_event_t *ev) {
+void unmap_notify(xcb_generic_event_t *ev) {
 	std::clog << "event: " << (ev->response_type & ~0x80) << " unmap notify recieved\n";
 }
 
-static void destroy_notify(xcb_generic_event_t *ev) {
+void destroy_notify(xcb_generic_event_t *ev) {
 	std::clog << "event: " << (ev->response_type & ~0x80) << " destroy notify recieved\n";
 
 	xcb_destroy_notify_event_t *e = (xcb_destroy_notify_event_t *) ev;
@@ -269,7 +271,24 @@ static void destroy_notify(xcb_generic_event_t *ev) {
 
 }
 
+void button_press(xcb_generic_event_t *ev){
+	std::clog << "event: " << (ev->response_type & ~0x80) << " button press recieved\n";
 
+	xcb_button_press_event_t *e = (xcb_button_press_event_t *) ev;
+
+	// find what window the pointer is over
+	xcb_query_pointer_reply_t *q =
+	q = xcb_query_pointer_reply(conn, xcb_query_pointer(conn, screen->root), NULL);
+	if (q == NULL)
+		return;
+	// if its a clinet focus it
+	Client *c = get_client(&q->child);
+	if (c != NULL)
+		c->focus();
+	// allow the pointer to be used
+	xcb_allow_events(conn, XCB_ALLOW_SYNC_POINTER, e->time);
+	xcb_flush(conn);
+}
 
 /*
  * msgs
