@@ -34,15 +34,6 @@ void print_focus() {
 	std::clog <<  "-----------\n";
 }
 
-void update_tag(int t) {
-	std::vector<Client *>::iterator it = tags[t].begin();
-	int i = 0;
-	// loop through the vector and reassign the idx of each client
-	for (; it != tags[t].end(); ++it, ++i) {
-		Client *tmp = *it;
-		tmp->idx = i;
-	}
-}
 
 Client *get_client(xcb_drawable_t *id) {
 	

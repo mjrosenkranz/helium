@@ -14,6 +14,7 @@ extern std::vector<Client *> tags[NUMTAGS + 1];
 extern bool visible[NUMTAGS + 1];
 extern std::deque<Client *> focus_queue;
 
+extern xcb_screen_t *screen;
 // config stuff
 extern std::map<std::string, unsigned int> config;
 

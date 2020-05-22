@@ -5,21 +5,26 @@
 
 class Client {
 	private:
-		xcb_drawable_t id;
+		xcb_drawable_t dec;
 		int x, y;
 		unsigned int w, h;
 		xcb_connection_t *conn;
 	public:
+		xcb_drawable_t id;
 		unsigned int tag; // tag this window is assigned to
-		unsigned int idx; // position in that vector
 		Client(xcb_window_t, xcb_connection_t *);
+		void unmanage(void);
+		void kill(void);
 		void print(void);
 		void change_tag(int);
 		void remove_tag(void);
 		void remove_focus(void);
 		bool match_id(xcb_drawable_t);
+		void decorate(void);
 		void map(void);
 		void focus(void);
+		void unfocus(void);
+		void decorate(unsigned int);
 		void move_relative(int, int);
 		void move_absolute(int, int);
 		bool resize_relative(std::string, int);

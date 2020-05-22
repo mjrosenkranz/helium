@@ -184,3 +184,9 @@ std::string msg_resize(std::vector<std::string> args) {
 	}
 
 }
+
+std::string msg_kill(std::vector<std::string>) {
+	Client *c = focus_queue.front();
+	c->kill();
+	return "success";
+}

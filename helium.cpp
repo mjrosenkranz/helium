@@ -58,6 +58,7 @@ static void map_request(xcb_generic_event_t *);
 static void destroy_notify(xcb_generic_event_t *);
 static void unmap_notify(xcb_generic_event_t *);
 static void button_press(xcb_generic_event_t *ev);
+static void expose(xcb_generic_event_t *ev);
 
 // functions
 static bool setup(int);
@@ -127,13 +128,7 @@ bool setup(int scrnum) {
 	events[XCB_MAP_REQUEST]					= map_request;
 	events[XCB_DESTROY_NOTIFY]      = destroy_notify;
 	events[XCB_BUTTON_PRESS]        = button_press;
-	//events[XCB_UNMAP_NOTIFY]        = unmap_notify;
-	/*
-	events[XCB_ENTER_NOTIFY]        = enternotify;
-	events[XCB_CONFIGURE_NOTIFY]    = confignotify;
-	events[XCB_CIRCULATE_REQUEST]   = circulaterequest;
-	events[XCB_CLIENT_MESSAGE]      = clientmessage;
-	*/
+	events[XCB_EXPOSE]							= expose;
 
 	// setup message handling
 	msg_map["move"] = &msg_move_relative;
@@ -142,11 +137,14 @@ bool setup(int scrnum) {
 	msg_map["tag"] = &msg_change_tag;
 	msg_map["focus"] = &msg_focus;
 	msg_map["resize"] = &msg_resize;
+	msg_map["kill"] = &msg_kill;
 
 	// default config stuff
 	config["move_mod"] = XCB_MOD_MASK_4;
 	config["resize_mod"] = XCB_MOD_MASK_2;
-	config["border_color"] = XCB_MOD_MASK_2;
+	config["border_colorf"] = 0xefefef;
+	config["border_coloru"] = 0x3f3f3f;
+	config["border_width"] = 10;
 
 
 	// set all tags to visible
@@ -235,6 +233,7 @@ void map_request(xcb_generic_event_t *ev) {
 	// if not set up a new client
 	Client *c = (Client *) malloc(sizeof(Client));
 	*c = Client(e->window, conn);
+	//c->decorate();
 	c->map();
 	c->change_tag(0);
 	c->print();
@@ -255,29 +254,19 @@ void destroy_notify(xcb_generic_event_t *ev) {
 	xcb_destroy_notify_event_t *e = (xcb_destroy_notify_event_t *) ev;
 
 	Client *c = get_client(&e->window);
+
 	// check if we manage this window
 	if (c == NULL) {
 		std::clog << "client " << std::hex << e->window << " not managed\n";
 		return;
 	}
 
-	// focus next in queue if we are the front
-	if (focus_queue.front() == c) {
-		// remove the window from the focus queue
-		c->remove_focus();
-		std::clog << "removed from front\n";
-		if (focus_queue.size() > 0) {
-			focus_queue.front()->focus();
-		}
-	} else {
-		// remove the window from the focus queue
-		c->remove_focus();
-	}
-	// remove the window from tags
-	c->remove_tag();
+	c->unmanage();
+
 	// free the pointer
 	free(c);
 
+	std::clog << "destroy notify handled\n";
 }
 
 void button_press(xcb_generic_event_t *ev){
@@ -292,10 +281,18 @@ void button_press(xcb_generic_event_t *ev){
 		return;
 	// if its a clinet focus it
 	Client *c = get_client(&q->child);
-	if (c != NULL)
-		c->focus();
+	if (c == NULL)
+		return;
+	
+	c->focus();
 
-	// check if alt is down
+	// if the button was middle then we can just kill the client
+	if (e->detail == XCB_BUTTON_INDEX_2) {
+		c->kill();
+		return;
+	}
+
+	// check if a mod is down
 	if (e->state != XCB_NONE) {
 		// in that case we want to capture the cursor movement
 
@@ -334,7 +331,7 @@ void button_press(xcb_generic_event_t *ev){
 					if (e->state == config["move_mod"]) {
 
 						c->move_relative(mv->root_x - lx, mv->root_y - ly);
-					} else {
+					} else if(e->state == config["resize_mod"]) {
 						c->resize_mouse(mv->root_x, lx, mv->root_y, ly);
 					}
 
@@ -366,6 +363,25 @@ void button_press(xcb_generic_event_t *ev){
 	xcb_allow_events(conn, XCB_ALLOW_SYNC_POINTER, e->time);
 	xcb_flush(conn);
 	std::clog << "button press handled\n";
+}
+
+void expose(xcb_generic_event_t *ev) {
+	std::clog << "event: " << (ev->response_type & ~0x80) << " expose recieved\n";
+
+	 xcb_expose_event_t *e = (xcb_expose_event_t *) ev;
+
+	Client *c = get_client(&e->window);
+
+	if (c == NULL)
+		return;
+
+	if (c == focus_queue.front()){
+		c->decorate(config["border_colorf"]);
+	} else {
+		c->decorate(config["border_coloru"]);
+	}
+
+	xcb_flush(conn);
 }
 
 /*

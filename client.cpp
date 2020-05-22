@@ -14,6 +14,8 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 	tag = -1;
 	conn = _conn;
 
+	dec = xcb_generate_id(_conn);
+
 	// set geometry to dummy values
 	x = 0;
 	y = 0;
@@ -33,6 +35,29 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 
 	free(geom);
 
+	uint32_t mask = XCB_CW_BACK_PIXEL;
+	uint32_t values[] = {config["border_colorf"]};
+
+	xcb_create_window(
+			conn, XCB_COPY_FROM_PARENT,
+			dec, screen->root, //parent
+			x, y, w + 2 * config["border_width"], h + 2 * config["border_width"],
+			0, XCB_WINDOW_CLASS_INPUT_OUTPUT, //class
+			screen->root_visual, // visual
+			mask, values
+	);
+
+	values[0] = XCB_EVENT_MASK_BUTTON_PRESS
+		| XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+		//| XCB_EVENT_MASK_EXPOSURE;
+	mask = XCB_CW_EVENT_MASK;
+
+	xcb_change_window_attributes(conn,
+					dec, mask, values);
+
+ xcb_reparent_window(conn,
+	      id, dec, config["border_width"], config["border_width"]);
+
 	// let us get events for this window
 	// this gets the button with not modifier
 	xcb_grab_button(conn, false, id, XCB_EVENT_MASK_BUTTON_PRESS,
@@ -40,13 +65,42 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 	                XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_ASYNC,
 	                XCB_NONE, XCB_NONE, XCB_BUTTON_INDEX_ANY, XCB_MOD_MASK_ANY);
 
+
+	xcb_flush(conn);
+}
+
+
+void Client::unmanage(void) {
+	if (focus_queue.front() == this) {
+		// remove the window from the focus queue
+		remove_focus();
+		std::clog << "removed from front\n";
+		if (focus_queue.size() > 0) {
+			focus_queue.front()->focus();
+
+		}
+	} else {
+		// remove the window from the focus queue
+		remove_focus();
+	}
+	// remove the window from tags
+	remove_tag();
+
+	// destroy the decoration
+	xcb_destroy_window(conn, dec);
+	xcb_flush(conn);
+}
+
+
+void Client::kill(void) {
+	std::clog << "killing client\n";
+	xcb_kill_client(conn, id);
 	xcb_flush(conn);
 }
 
 void Client::print(void) {
 	std::clog << "id: " << std::hex << id
 		<< " tag: " << std::hex << tag << std::dec
-		<< " idx: " << idx
 		<< " x: " << x
 		<< " y: " << y
 		<< " w: " << w
@@ -57,11 +111,12 @@ void Client::print(void) {
 
 
 bool Client::match_id(xcb_drawable_t _id) {
-	return id == _id;
+	return id == _id || dec == _id;
 }
 
 
 void Client::map(void) {
+	xcb_map_window(conn, dec);
 	xcb_map_window(conn, id);
 }
 
@@ -78,39 +133,74 @@ void Client::change_tag(int t) {
 	// if the tag has been asigned before
 	if (tag != -1) {
 	// remove from current tag
-		tags[tag].erase(tags[tag].begin() + idx);
-		// update the idx of all windows in previous tag
-		update_tag(tag);
+		for (int i = 0; i < tags[tag].size(); ++i) {
+			if (tags[tag].at(i) == this) {
+				tags[tag].erase(tags[tag].begin() + i);
+				break;
+			}
+		}
+		
 	}
 
 	// add to new tag
 	tag = t;
 	tags[tag].push_back(this);
-	update_tag(tag);
 }
 
 
 void Client::remove_tag(void) {
-	tags[tag].erase(tags[tag].begin() + idx);
-	update_tag(tag);
+		for (int i = 0; i < tags[tag].size(); ++i) {
+			if (tags[tag].at(i) == this) {
+				tags[tag].erase(tags[tag].begin() + i);
+				break;
+			}
+		}
 }
 
 void Client::focus(void) {
 	// remove this window from the focuse queue
 	remove_focus();
+
+	// unfocus the focused window
+	Client *focused = focus_queue.front();
+	if (focused != NULL && focused != this)
+		focused->unfocus();
 	
 	// add to the front of the focus queue
 	focus_queue.push_front(this);
+
+	uint32_t mask = XCB_CONFIG_WINDOW_STACK_MODE;
+	uint32_t values[] = { XCB_STACK_MODE_ABOVE };
+
+	decorate(config["border_colorf"]);
+	// raise the window and change the color
+	xcb_configure_window(conn, dec, mask, values);
+	//xcb_configure_window(conn, id, mask, values);
+
+
 	// focus the client
 	xcb_set_input_focus(conn, XCB_INPUT_FOCUS_POINTER_ROOT, id,
 			XCB_CURRENT_TIME);
 
-	// raise the window
-	uint32_t values[] = { XCB_STACK_MODE_ABOVE };
+	xcb_flush(conn);
+}
 
-	xcb_configure_window(conn, id, XCB_CONFIG_WINDOW_STACK_MODE, values);
+void Client::unfocus(void) {
+	decorate(config["border_coloru"]);
+}
+
+void Client::decorate(unsigned int color) {
+
+	xcb_unmap_window(conn, dec);
+	uint32_t mask = XCB_CW_BACK_PIXEL;
+	uint32_t values[] = {color};
+
+	// raise the window and change the color
+	xcb_change_window_attributes(conn, dec, mask, values);
+	//std::clog << "changing window color to " << std::hex << color << std::endl;
 
 	xcb_flush(conn);
+	xcb_map_window(conn, dec);
 }
 
 void Client::remove_focus(void) {
@@ -125,7 +215,7 @@ void Client::move_relative(int _x, int _y) {
 	y += _y;
 	int values[] = { x, y};
 
-	xcb_configure_window (conn, id,
+	xcb_configure_window (conn, dec,
 			XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
 
 	xcb_flush(conn);
@@ -136,7 +226,7 @@ void Client::move_absolute(int _x, int _y) {
 	y = _y;
 	int values[] = { x, y };
 
-	xcb_configure_window (conn, id,
+	xcb_configure_window (conn, dec,
 			XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
 
 	xcb_flush(conn);
@@ -158,12 +248,22 @@ bool Client::resize_relative(std::string dir, int amt) {
 		return false;
 	}
 
-	int values[] = { x, y, (int) w, (int) h };
+	int values[] = { x, y,
+		(int) (w + 2 * config["border_width"]),
+		(int) (h + 2 * config["border_width"])};
 
-	xcb_configure_window (conn, id,
+	xcb_configure_window (conn, dec,
 			XCB_CONFIG_WINDOW_X
 			| XCB_CONFIG_WINDOW_Y
 			| XCB_CONFIG_WINDOW_WIDTH
+			| XCB_CONFIG_WINDOW_HEIGHT,
+			values);
+
+	values[0] = (int) w,
+	values[1] = (int) h;
+
+	xcb_configure_window (conn, id,
+			XCB_CONFIG_WINDOW_WIDTH
 			| XCB_CONFIG_WINDOW_HEIGHT,
 			values);
 
@@ -178,7 +278,17 @@ void Client::resize_to(int nw, int nh) {
 	w = nw;
 	h = nh;
 
-	int values[] = { (int) w, (int) h };
+	int values[] = { x, y,
+		(int) (w + 2 * config["border_width"]),
+		(int) (h + 2 * config["border_width"])};
+
+	xcb_configure_window (conn, dec,
+			XCB_CONFIG_WINDOW_WIDTH
+			| XCB_CONFIG_WINDOW_HEIGHT,
+			values);
+
+	values[0] = (int) w,
+	values[1] = (int) h;
 
 	xcb_configure_window (conn, id,
 			XCB_CONFIG_WINDOW_WIDTH
