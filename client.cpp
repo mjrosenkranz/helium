@@ -71,24 +71,15 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 
 
 void Client::unmanage(void) {
-	if (focus_queue.front() == this) {
-		// remove the window from the focus queue
-		remove_focus();
-		std::clog << "removed from front\n";
-		if (focus_queue.size() > 0) {
-			focus_queue.front()->focus();
-
-		}
-	} else {
-		// remove the window from the focus queue
-		remove_focus();
-	}
+	remove_focus();
+	// ungrab button
+	xcb_ungrab_button(conn, XCB_BUTTON_INDEX_ANY, id, XCB_MOD_MASK_ANY);
 	// remove the window from tags
 	remove_tag();
+	unfocus();
 
 	// destroy the decoration
 	xcb_destroy_window(conn, dec);
-	xcb_flush(conn);
 }
 
 
@@ -145,6 +136,15 @@ void Client::change_tag(int t) {
 	// add to new tag
 	tag = t;
 	tags[tag].push_back(this);
+	std::clog << "added to tag " << t << std::endl;
+
+	// if the tag is hidden we want to do the same
+	if (!visible[t]) {
+		// we want to no longer be in the focus list
+		set_visible(false);
+	}
+
+	print();
 }
 
 
@@ -158,8 +158,13 @@ void Client::remove_tag(void) {
 }
 
 void Client::focus(void) {
+	std::clog << "focusing: " << std::hex << id << std::endl;
+
 	// remove this window from the focuse queue
-	remove_focus();
+	for (int i = 0; i < focus_queue.size(); i++) {
+		if (focus_queue[i]->id == id)
+			focus_queue.erase(focus_queue.begin() + i);
+	}
 
 	// unfocus the focused window
 	Client *focused = focus_queue.front();
@@ -182,6 +187,7 @@ void Client::focus(void) {
 	xcb_set_input_focus(conn, XCB_INPUT_FOCUS_POINTER_ROOT, id,
 			XCB_CURRENT_TIME);
 
+	print_focus();
 	xcb_flush(conn);
 }
 
@@ -189,6 +195,23 @@ void Client::unfocus(void) {
 	decorate(config["border_coloru"]);
 }
 
+void Client::remove_focus(void) {
+
+	// remove this window from the queue
+	for (int i = 0; i < focus_queue.size(); i++) {
+		if (focus_queue[i] == this) {
+			std::clog << "removing self from focus list\n";
+			focus_queue.erase(focus_queue.begin() + i);
+		}
+	}
+
+
+	// if the list isnt empty then focus the next window
+	if (focus_queue.size() > 0) {
+		Client *c = focus_queue.front();
+		c->focus();
+	}
+}
 void Client::decorate(unsigned int color) {
 
 	xcb_unmap_window(conn, dec);
@@ -203,12 +226,6 @@ void Client::decorate(unsigned int color) {
 	xcb_map_window(conn, dec);
 }
 
-void Client::remove_focus(void) {
-	for (int i = 0; i < focus_queue.size(); i++) {
-		if (focus_queue[i]->id == id)
-			focus_queue.erase(focus_queue.begin() + i);
-	}
-}
 
 void Client::move_relative(int _x, int _y) {
 	x += _x;
@@ -313,4 +330,20 @@ void Client::resize_mouse(int _x, int lx, int _y, int ly) {
 	} else {
 		resize_relative("north", -dh);
 	}
+}
+
+void Client::set_visible(bool state) {
+	if (state) {
+		std::clog << "mapping\n";
+		// add to back of focus list
+		focus_queue.push_back(this);
+		xcb_map_window(conn, dec);
+	} else {
+		std::clog << "unmapping\n";
+		remove_focus();
+		unfocus();
+		xcb_unmap_window(conn, dec);
+	}
+
+	xcb_flush(conn);
 }

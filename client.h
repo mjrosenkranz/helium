@@ -5,12 +5,12 @@
 
 class Client {
 	private:
+		xcb_drawable_t id;
 		xcb_drawable_t dec;
 		int x, y;
 		unsigned int w, h;
 		xcb_connection_t *conn;
 	public:
-		xcb_drawable_t id;
 		unsigned int tag; // tag this window is assigned to
 		Client(xcb_window_t, xcb_connection_t *);
 		void unmanage(void);
@@ -30,6 +30,7 @@ class Client {
 		bool resize_relative(std::string, int);
 		void resize_to(int, int);
 		void resize_mouse(int, int, int, int);
+		void set_visible(bool);
 };
 
 #endif

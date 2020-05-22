@@ -190,3 +190,41 @@ std::string msg_kill(std::vector<std::string>) {
 	c->kill();
 	return "success";
 }
+
+// toggle a tag
+std::string msg_toggle(std::vector<std::string> args) {
+	if (args.size() < 2)
+		return "move requires at least one argument";
+
+	int t;
+	try {
+		t = std::stoi(args[1], NULL);
+	} catch(std::invalid_argument& e) {
+		return "tag must be an integer";
+	}
+
+	if (t == 0 || t > NUMTAGS + 1)
+		return "tag " + args[1] + " does not exist";
+
+	// toggle visibility
+	visible[t] = !visible[t];
+	if (visible[t]) {
+		// if the focus queue is empty then we want to focus the new guys
+		bool focus_last = focus_queue.size() == 0;
+		// set things visible
+		for (Client *c : tags[t]) {
+			c->set_visible(true);
+		}
+
+		if (focus_last)
+			focus_queue.front()->focus();
+	} else {
+		// hide tag members
+		for (Client *c : tags[t]) {
+			c->set_visible(false);
+		}
+	}
+
+
+	return "success";
+}

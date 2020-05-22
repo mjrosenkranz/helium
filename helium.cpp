@@ -138,6 +138,7 @@ bool setup(int scrnum) {
 	msg_map["focus"] = &msg_focus;
 	msg_map["resize"] = &msg_resize;
 	msg_map["kill"] = &msg_kill;
+	msg_map["toggle"] = &msg_toggle;
 
 	// default config stuff
 	config["move_mod"] = XCB_MOD_MASK_4;
@@ -286,11 +287,6 @@ void button_press(xcb_generic_event_t *ev){
 	
 	c->focus();
 
-	// if the button was middle then we can just kill the client
-	if (e->detail == XCB_BUTTON_INDEX_2) {
-		c->kill();
-		return;
-	}
 
 	// check if a mod is down
 	if (e->state != XCB_NONE) {
@@ -309,6 +305,14 @@ void button_press(xcb_generic_event_t *ev){
 			return;
 		}
 		free(reply);
+
+		// if the button was middle then we can just kill the client
+		if (e->detail == XCB_BUTTON_INDEX_2) {
+			c->kill();
+			xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
+			free(q);
+			return;
+		}
 
 		xcb_generic_event_t *tmpev;
 		bool grabbing = true;
@@ -464,6 +468,7 @@ void run(void) {
 			}
 
 			if (FD_ISSET(conn_fd, &descriptors)) {
+
 				while ((ev = xcb_poll_for_event(conn)) != NULL) {
 					events[ev->response_type & ~0x80](ev);
 					// free the event we just allocated
