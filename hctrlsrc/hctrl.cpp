@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <string>
 #include <iostream>
-#include "helium.h"
+#include "../src/helium.h"
 
 std::string send_msg(std::string);
 

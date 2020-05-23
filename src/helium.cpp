@@ -56,7 +56,6 @@ static xcb_screen_t *xcb_screen_of_display(xcb_connection_t *, int);
 static void printevent(xcb_generic_event_t *);
 static void map_request(xcb_generic_event_t *);
 static void destroy_notify(xcb_generic_event_t *);
-static void unmap_notify(xcb_generic_event_t *);
 static void button_press(xcb_generic_event_t *ev);
 static void expose(xcb_generic_event_t *ev);
 
@@ -160,7 +159,7 @@ bool socket_setup() {
 
 	// setup the ipc socket
 	// setup socket descriptor
-	if ((socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+	if ((socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		perror("socket");
 		return false;
 	}
@@ -237,16 +236,12 @@ void map_request(xcb_generic_event_t *ev) {
 	//c->decorate();
 	c->map();
 	c->change_tag(0);
-	c->print();
+	c->print("map:");
 	c->focus();
 	//c->raise(conn);
 	// map the window
 	xcb_flush(conn);
 	std::clog << "map request handled\n";
-}
-
-void unmap_notify(xcb_generic_event_t *ev) {
-	std::clog << "event: " << (ev->response_type & ~0x80) << " unmap notify recieved\n";
 }
 
 void destroy_notify(xcb_generic_event_t *ev) {
@@ -268,6 +263,7 @@ void destroy_notify(xcb_generic_event_t *ev) {
 	free(c);
 
 	std::clog << "destroy notify handled\n";
+	xcb_flush(conn);
 }
 
 void button_press(xcb_generic_event_t *ev){
@@ -276,7 +272,7 @@ void button_press(xcb_generic_event_t *ev){
 	xcb_button_press_event_t *e = (xcb_button_press_event_t *) ev;
 
 	// find what window the pointer is over
-	xcb_query_pointer_reply_t *q =
+	xcb_query_pointer_reply_t *q;
 	q = xcb_query_pointer_reply(conn, xcb_query_pointer(conn, screen->root), NULL);
 	if (q == NULL)
 		return;
@@ -318,7 +314,6 @@ void button_press(xcb_generic_event_t *ev){
 		bool grabbing = true;
 		int lx = q->root_x;
 		int ly = q->root_y;
-		int dx, dy = 0;
 		xcb_motion_notify_event_t *mv;
 
 		do {
@@ -427,7 +422,7 @@ void rw_socket(void) {
 	char buff[BUFFLEN];
 	unsigned int t = sizeof(remote);
 	// attempt to accept a new connection
-	if ((socket2 = accept(socket_fd, (struct sockaddr *) &remote, &t)) == -1) {
+	if ((socket2 = accept(socket_fd, (struct sockaddr *) &remote, &t)) < 0) {
 		perror("accept");
 		exit(1);
 	}

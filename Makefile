@@ -1,26 +1,37 @@
 
 CXX := g++
-CXXFLAGS := -Wall -Wextra -g
+CXXFLAGS := -Wall -g
 
 LIBS = -lxcb
 
 TARGETS = helium hctrl
-OBJS = client.o util.o msg.o helium.o
+
+SRCDIR := src
+SRCS = $(wildcard $(SRCDIR)/*.cpp)
+OBJS = $(SRCS:.cpp=.o)
 
 all: $(TARGETS)
 
-%.o: %.cpp
-	$(CXX) -c $<
+test:
+	@echo $(SRCS)
+	@echo $(OBJS)
+
+$(SRCDIR)/%.o: $(SRCDIR)%.cpp
+	$(CXX) -c $< -o $@
 
 helium: $(OBJS)
 	$(CXX) -o $@ $(LIBS) $(CXXFLAGS) $^
 
-hctrl: hctrl.o
+hctrl: hctrlsrc/hctrl.o
 	$(CXX) -o $@ $(LIBS) $(CXXFLAGS) $^
+
+hctrlsrc/hctrl.o:
+	$(CXX) -c hctrlsrc/hctrl.cpp -o $@
 
 clean:
 	@echo "removing object files:"
-	rm -rf *.o
+	rm -rf $(SRCDIR)/*.o
+	rm -rf hctrlsrc/*.o
 	rm -f $(TARGETS)
 
 server:

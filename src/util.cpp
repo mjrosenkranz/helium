@@ -17,7 +17,7 @@ void print_tags() {
 			// if not print all the windows
 			std::clog << "Tag " << i << std::endl;
 			for (Client *c : tags[i]) {
-				c->print();
+				c->print("");
 			}
 		}
 	}
@@ -29,7 +29,7 @@ void print_focus() {
 	std::clog << "Focus queue:\n";
 
 	for (Client *c : focus_queue) {
-		c->print();
+		c->print("f:");
 	}
 	std::clog <<  "-----------\n";
 }

@@ -15,7 +15,7 @@ class Client {
 		Client(xcb_window_t, xcb_connection_t *);
 		void unmanage(void);
 		void kill(void);
-		void print(void);
+		void print(std::string);
 		void change_tag(int);
 		void remove_tag(void);
 		void remove_focus(void);

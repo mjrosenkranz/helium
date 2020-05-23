@@ -66,7 +66,7 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 	                XCB_NONE, XCB_NONE, XCB_BUTTON_INDEX_ANY, XCB_MOD_MASK_ANY);
 
 
-	xcb_flush(conn);
+	//xcb_flush(conn);
 }
 
 
@@ -89,8 +89,8 @@ void Client::kill(void) {
 	xcb_flush(conn);
 }
 
-void Client::print(void) {
-	std::clog << "id: " << std::hex << id
+void Client::print(std::string pre) {
+	std::clog << pre << " id: " << std::hex << id
 		<< " tag: " << std::hex << tag << std::dec
 		<< " x: " << x
 		<< " y: " << y
@@ -118,13 +118,13 @@ void Client::change_tag(int t) {
 		return;
 
 	// check if we are already on that tag
-	if ( t == tag )
+	if ( t == (int) tag )
 		return;
 	
 	// if the tag has been asigned before
-	if (tag != -1) {
+	if ((int) tag != -1) {
 	// remove from current tag
-		for (int i = 0; i < tags[tag].size(); ++i) {
+		for (int i = 0; i <(int) tags[tag].size(); ++i) {
 			if (tags[tag].at(i) == this) {
 				tags[tag].erase(tags[tag].begin() + i);
 				break;
@@ -144,12 +144,12 @@ void Client::change_tag(int t) {
 		set_visible(false);
 	}
 
-	print();
+	print("change tag");
 }
 
 
 void Client::remove_tag(void) {
-		for (int i = 0; i < tags[tag].size(); ++i) {
+		for (int i = 0; i < (int) tags[tag].size(); ++i) {
 			if (tags[tag].at(i) == this) {
 				tags[tag].erase(tags[tag].begin() + i);
 				break;
@@ -161,14 +161,15 @@ void Client::focus(void) {
 	std::clog << "focusing: " << std::hex << id << std::endl;
 
 	// remove this window from the focuse queue
-	for (int i = 0; i < focus_queue.size(); i++) {
-		if (focus_queue[i]->id == id)
+	for (int i = 0; i < (int) focus_queue.size(); i++) {
+		if (focus_queue[i] == this)
 			focus_queue.erase(focus_queue.begin() + i);
 	}
 
+
 	// unfocus the focused window
 	Client *focused = focus_queue.front();
-	if (focused != NULL && focused != this)
+	if (focus_queue.size() > 0 && focused != this)
 		focused->unfocus();
 	
 	// add to the front of the focus queue
@@ -198,7 +199,7 @@ void Client::unfocus(void) {
 void Client::remove_focus(void) {
 
 	// remove this window from the queue
-	for (int i = 0; i < focus_queue.size(); i++) {
+	for (int i = 0; i <(int) focus_queue.size(); i++) {
 		if (focus_queue[i] == this) {
 			std::clog << "removing self from focus list\n";
 			focus_queue.erase(focus_queue.begin() + i);
@@ -320,12 +321,12 @@ void Client::resize_mouse(int _x, int lx, int _y, int ly) {
 	int ry = _y - y;
 	int dw = _x - lx;
 	int dh = _y - ly;
-	if (rx > (w / 2)) {
+	if (rx > (int) (w / 2)) {
 		resize_relative("east", dw);
 	} else {
 		resize_relative("west", -dw);
 	}
-	if (ry > (h / 2)) {
+	if (ry > (int) (h / 2)) {
 		resize_relative("south", dh);
 	} else {
 		resize_relative("north", -dh);
