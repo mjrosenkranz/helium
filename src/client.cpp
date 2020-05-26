@@ -40,16 +40,23 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 
 	// snap the window's geometry
 	snap();
+	// apply snap to client
+	uint32_t values[] = {
+		(w - 2 * offset),
+		(h - 2 * offset)};
 
+	xcb_configure_window (conn, id,
+			XCB_CONFIG_WINDOW_WIDTH
+			| XCB_CONFIG_WINDOW_HEIGHT,
+			values);
 	uint32_t mask = XCB_CW_BACK_PIXEL;
-	uint32_t values[] = {config["focus_color"]};
+	values[0] = config["focus_color"];
 
 
 	xcb_create_window(
 			conn, XCB_COPY_FROM_PARENT,
 			dec, screen->root, //parent
 			x, y,
-			//w + (2 * offset), h + (2 * offset),
 			w, h,
 			0, XCB_WINDOW_CLASS_INPUT_OUTPUT, //class
 			screen->root_visual, // visual
@@ -59,13 +66,14 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 	values[0] = XCB_EVENT_MASK_BUTTON_PRESS
 		| XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
 	mask = XCB_CW_EVENT_MASK;
-
 	xcb_change_window_attributes(conn,
 					dec, mask, values);
 
+
+
 	// resize child window
 
- xcb_reparent_window(conn,
+	xcb_reparent_window(conn,
 	      id, dec, offset, offset);
 
 	// let us get events for this window
@@ -223,8 +231,32 @@ void Client::remove_focus(void) {
 void Client::decorate(unsigned int color) {
 
 	xcb_unmap_window(conn, dec);
-	uint32_t mask = XCB_CW_BACK_PIXEL;
-	uint32_t values[] = {color};
+
+	xcb_pixmap_t pixmap = xcb_generate_id(conn);
+    xcb_create_pixmap(conn, screen->root_depth, pixmap, dec, w, h);
+    // make graphics context 4 drawing
+    xcb_gcontext_t gc = xcb_generate_id(conn);
+    xcb_create_gc(conn, gc, pixmap, XCB_GC_FOREGROUND, &color);
+
+    // draw outer rect
+    xcb_rectangle_t rects[] = {
+		{0, 0, (uint16_t) w, (uint16_t) h}
+	};
+	xcb_poly_fill_rectangle(conn, pixmap, gc, 1, rects);
+
+    // draw inner rect
+    rects[0] = {
+    	(int16_t) config["outer_width"],
+    	(int16_t) config["outer_width"],
+    	(uint16_t) (w - (2 * config["outer_width"])),
+    	(uint16_t) (h - (2 * config["outer_width"]))
+	};
+	unsigned int tmp = 0x00ff00;
+	xcb_change_gc(conn, gc, XCB_GC_FOREGROUND, &tmp);
+	xcb_poly_fill_rectangle(conn, pixmap, gc, 1, rects);
+
+	uint32_t mask = XCB_CW_BACK_PIXMAP;
+	uint32_t values[] = {pixmap};
 
 	// raise the window and change the color
 	xcb_change_window_attributes(conn, dec, mask, values);
@@ -301,8 +333,14 @@ bool Client::resize_relative(std::string dir, int amt) {
 			values);
 
 	xcb_flush(conn);
-	return true;
 
+	if (focus_queue.front() == this) {
+		decorate(config["focus_color"]);
+	} else {
+		decorate(config["unfocus_color"]);
+	}
+
+	return true;
 }
 
 

@@ -149,11 +149,11 @@ bool setup(int scrnum) {
 	// default config stuff
 	config["move_mod"] = XCB_MOD_MASK_4;
 	config["resize_mod"] = XCB_MOD_MASK_2;
-	config["focus_color"] = 0xefefef;
-	config["unfocus_color"] = 0x3f3f3f;
+	config["focus_color"] = 0x36424f;
+	config["unfocus_color"] = 0x1a2026;
 	config["outer_width"] = 10;
-	config["inner_width"] = 10;
-	config["snap"] = 30;
+	config["inner_width"] = 3;
+	config["snap"] = 20;
 
 
 	// set all tags to visible
