@@ -1,4 +1,5 @@
 #include <xcb/xcb.h>
+#include <cmath>
 #include <xcb/xcb_aux.h>
 #include <deque>
 #include <cstdlib>
@@ -26,22 +27,30 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 			xcb_get_geometry(conn, id), NULL);
 
 
+	int offset = config["outer_width"] + config["inner_width"];
+
 	if (geom != NULL) {
 		x = geom->x;
 		y = geom->y;
-		w = geom->width;
-		h = geom->height;
+		w = geom->width + (2 * offset);
+		h = geom->height + (2 * offset);
 	}
 
 	free(geom);
 
+	// snap the window's geometry
+	snap();
+
 	uint32_t mask = XCB_CW_BACK_PIXEL;
-	uint32_t values[] = {config["border_colorf"]};
+	uint32_t values[] = {config["focus_color"]};
+
 
 	xcb_create_window(
 			conn, XCB_COPY_FROM_PARENT,
 			dec, screen->root, //parent
-			x, y, w + 2 * config["border_width"], h + 2 * config["border_width"],
+			x, y,
+			//w + (2 * offset), h + (2 * offset),
+			w, h,
 			0, XCB_WINDOW_CLASS_INPUT_OUTPUT, //class
 			screen->root_visual, // visual
 			mask, values
@@ -49,14 +58,15 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 
 	values[0] = XCB_EVENT_MASK_BUTTON_PRESS
 		| XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
-		//| XCB_EVENT_MASK_EXPOSURE;
 	mask = XCB_CW_EVENT_MASK;
 
 	xcb_change_window_attributes(conn,
 					dec, mask, values);
 
+	// resize child window
+
  xcb_reparent_window(conn,
-	      id, dec, config["border_width"], config["border_width"]);
+	      id, dec, offset, offset);
 
 	// let us get events for this window
 	// this gets the button with not modifier
@@ -64,9 +74,6 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 									// stop the cursor  continue the keyboard
 	                XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_ASYNC,
 	                XCB_NONE, XCB_NONE, XCB_BUTTON_INDEX_ANY, XCB_MOD_MASK_ANY);
-
-
-	//xcb_flush(conn);
 }
 
 
@@ -178,7 +185,7 @@ void Client::focus(void) {
 	uint32_t mask = XCB_CONFIG_WINDOW_STACK_MODE;
 	uint32_t values[] = { XCB_STACK_MODE_ABOVE };
 
-	decorate(config["border_colorf"]);
+	decorate(config["focus_color"]);
 	// raise the window and change the color
 	xcb_configure_window(conn, dec, mask, values);
 	//xcb_configure_window(conn, id, mask, values);
@@ -193,7 +200,7 @@ void Client::focus(void) {
 }
 
 void Client::unfocus(void) {
-	decorate(config["border_coloru"]);
+	decorate(config["unfocus_color"]);
 }
 
 void Client::remove_focus(void) {
@@ -231,7 +238,11 @@ void Client::decorate(unsigned int color) {
 void Client::move_relative(int _x, int _y) {
 	x += _x;
 	y += _y;
-	int values[] = { x, y};
+
+	// std::clog << x << " vs " << nx << std::endl;
+	snap();
+
+	int values[] = { x, y };
 
 	xcb_configure_window (conn, dec,
 			XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, values);
@@ -266,9 +277,13 @@ bool Client::resize_relative(std::string dir, int amt) {
 		return false;
 	}
 
+	snap();
+
+	int offset = config["outer_width"] + config["inner_width"];
+
 	int values[] = { x, y,
-		(int) (w + 2 * config["border_width"]),
-		(int) (h + 2 * config["border_width"])};
+		(int) (w),
+		(int) (h)};
 
 	xcb_configure_window (conn, dec,
 			XCB_CONFIG_WINDOW_X
@@ -277,8 +292,8 @@ bool Client::resize_relative(std::string dir, int amt) {
 			| XCB_CONFIG_WINDOW_HEIGHT,
 			values);
 
-	values[0] = (int) w,
-	values[1] = (int) h;
+	values[0] = (int) w - (2 * offset),
+	values[1] = (int) h - (2 * offset);
 
 	xcb_configure_window (conn, id,
 			XCB_CONFIG_WINDOW_WIDTH
@@ -296,11 +311,13 @@ void Client::resize_to(int nw, int nh) {
 	w = nw;
 	h = nh;
 
-	int values[] = { x, y,
-		(int) (w + 2 * config["border_width"]),
-		(int) (h + 2 * config["border_width"])};
+	int offset = config["outer_width"] + config["inner_width"];
 
-	xcb_configure_window (conn, dec,
+	int values[] = {
+		(int) (w - 2 * offset),
+		(int) (h - 2 * offset)};
+
+	xcb_configure_window (conn, id,
 			XCB_CONFIG_WINDOW_WIDTH
 			| XCB_CONFIG_WINDOW_HEIGHT,
 			values);
@@ -308,7 +325,7 @@ void Client::resize_to(int nw, int nh) {
 	values[0] = (int) w,
 	values[1] = (int) h;
 
-	xcb_configure_window (conn, id,
+	xcb_configure_window (conn, dec,
 			XCB_CONFIG_WINDOW_WIDTH
 			| XCB_CONFIG_WINDOW_HEIGHT,
 			values);
@@ -316,11 +333,11 @@ void Client::resize_to(int nw, int nh) {
 	xcb_flush(conn);
 }
 
-void Client::resize_mouse(int _x, int lx, int _y, int ly) {
+void Client::resize_mouse(int _x, int dw, int _y, int dh) {
 	int rx = _x - x;
 	int ry = _y - y;
-	int dw = _x - lx;
-	int dh = _y - ly;
+
+
 	if (rx > (int) (w / 2)) {
 		resize_relative("east", dw);
 	} else {
@@ -347,4 +364,18 @@ void Client::set_visible(bool state) {
 	}
 
 	xcb_flush(conn);
+}
+
+void Client::snap() {
+	int nx, ny;
+	nx = std::abs(x) + config["snap"]/2;
+	nx -= nx % config["snap"];
+	x = x > 0 ? nx : -nx;
+	ny = std::abs(y) + config["snap"]/2;
+	ny -= ny % config["snap"];
+	y = y > 0 ? ny : -ny;
+	w = w + config["snap"]/2;
+	w -= w % config["snap"];
+	h = h + config["snap"]/2;
+	h -= h % config["snap"];
 }

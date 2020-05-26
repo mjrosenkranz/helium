@@ -11,6 +11,8 @@
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <csignal>
+#include <cmath>
 
 #include "client.h"
 #include "msg.h"
@@ -18,6 +20,7 @@
 #include "util.h"
 
 
+bool running;
 // sockets
 unsigned int socket_fd, conn_fd, max_fd, socket2;
 fd_set descriptors;
@@ -49,7 +52,7 @@ typedef std::string (*msg_handler)(std::vector<std::string>);
 std::map<std::string, msg_handler> msg_map;
 
 // utility functions
-static void cleanup();
+void cleanup(int);
 static xcb_screen_t *xcb_screen_of_display(xcb_connection_t *, int);
 
 // event handlers
@@ -80,11 +83,15 @@ int main(int argc, char **argv) {
 	conn_fd = xcb_get_file_descriptor(conn);
 
 	// TODO: setup signal handlers
+	signal(SIGABRT, cleanup);
+	signal(SIGTERM, cleanup);
+	signal(SIGINT, cleanup);
 
 
 	// setup
 	if(setup(scrnum) && socket_setup()) {
 		std::clog << "connected to display!\n";
+		running = true;
 		run();
 	}
 }
@@ -142,9 +149,11 @@ bool setup(int scrnum) {
 	// default config stuff
 	config["move_mod"] = XCB_MOD_MASK_4;
 	config["resize_mod"] = XCB_MOD_MASK_2;
-	config["border_colorf"] = 0xefefef;
-	config["border_coloru"] = 0x3f3f3f;
-	config["border_width"] = 10;
+	config["focus_color"] = 0xefefef;
+	config["unfocus_color"] = 0x3f3f3f;
+	config["outer_width"] = 10;
+	config["inner_width"] = 10;
+	config["snap"] = 30;
 
 
 	// set all tags to visible
@@ -185,9 +194,11 @@ bool socket_setup() {
 	return true;
 }
 
-void cleanup() {
+void cleanup(int sig) {
+	std::clog <<  "all cleaned up\n";
 	// clean stuff up
 	// free all vectors
+	running = false;
 	
 	for (int i = 0; i <= NUMTAGS; i++) {
 		for (Client *c : tags[i]) {
@@ -195,7 +206,6 @@ void cleanup() {
 		}
 		tags[i].clear();
 	}
-	std::clog <<  "all cleaned up\n";
 }
 
 // grets the screen of the display
@@ -312,8 +322,15 @@ void button_press(xcb_generic_event_t *ev){
 
 		xcb_generic_event_t *tmpev;
 		bool grabbing = true;
+		// last x and y
 		int lx = q->root_x;
 		int ly = q->root_y;
+		// total x and y
+		int tx = 0;
+		int ty = 0;
+		// amount to move by
+		int mx = 0;
+		int my = 0;
 		xcb_motion_notify_event_t *mv;
 
 		do {
@@ -327,21 +344,44 @@ void button_press(xcb_generic_event_t *ev){
 				case XCB_MOTION_NOTIFY:
 					mv = (xcb_motion_notify_event_t*) tmpev;
 
-					if (e->state == config["move_mod"]) {
+					// add to the total x movement
+					tx += mv->root_x - lx;
+					ty += mv->root_y - ly;
 
+					// if total x is greater than the snap amount then snap
+					if (std::abs(tx) >= config["snap"]) {
+						// and change back to zero
+						mx = tx;
+						tx = 0;
+					}
+					if (std::abs(ty) >= config["snap"]) {
+						// and change back to zero
+						my = ty;
+						ty = 0;
+					}
+					/*
+					if (e->state == config["move_mod"]) {
 						c->move_relative(mv->root_x - lx, mv->root_y - ly);
 					} else if(e->state == config["resize_mod"]) {
 						c->resize_mouse(mv->root_x, lx, mv->root_y, ly);
 					}
 
+					*/
 					// set the last location
 					lx = mv->root_x;
 					ly = mv->root_y;
 
+					if (e->state == config["move_mod"]) {
+						c->move_relative(mx, my);
+					} else {
+						c->resize_mouse(mv->root_x, mx, mv->root_y, my);
+					}
+
+					mx = 0;
+					my = 0;
+
 					xcb_flush(conn);
 					break;
-				//case XCB_KEY_PRESS:
-				//case XCB_KEY_RELEASE:
 				case XCB_BUTTON_PRESS:
 				case XCB_BUTTON_RELEASE:
 					grabbing = false;
@@ -447,7 +487,7 @@ void rw_socket(void) {
 void run(void) {
 	xcb_generic_event_t *ev  = NULL;
 
-	while(true) {
+	while(running) {
 		// reset the fd_set
 		FD_ZERO(&descriptors);
 		// look at our socket

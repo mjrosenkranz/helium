@@ -10,6 +10,7 @@ class Client {
 		int x, y;
 		unsigned int w, h;
 		xcb_connection_t *conn;
+		void snap();
 	public:
 		unsigned int tag; // tag this window is assigned to
 		Client(xcb_window_t, xcb_connection_t *);

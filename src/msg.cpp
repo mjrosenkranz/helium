@@ -25,8 +25,8 @@ std::string msg_move_relative(std::vector<std::string> args) {
 	}
 
 
-	std::clog << "move window x: " << x
-		<< " y: " << y << std::endl;
+//	std::clog << "move window x: " << x
+//		<< " y: " << y << std::endl;
 
 	// get the currently focused window
 	Client *c = focus_queue.front();
