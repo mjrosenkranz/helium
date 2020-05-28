@@ -228,3 +228,45 @@ std::string msg_toggle(std::vector<std::string> args) {
 
 	return "success";
 }
+
+std::string msg_config(std::vector<std::string> args) {
+
+	// check if the first value is a config variable
+	if (config.find(args[1]) == config.end())
+		return args[1] + " invalid config value";
+
+	// colors are in base 16
+	if (args[1].find("color") != std::string::npos) {
+
+		unsigned int val;
+		try {
+			val = std::stoul(args[2], NULL, 16);
+		} catch(std::invalid_argument& e) {
+			return "value must be an integer";
+		}
+		config[args[1]] = val;
+
+		// repaint all visible windows
+		for (Client *c : focus_queue) {
+			if (c == focus_queue.front()) {
+				c->decorate(config["focus_color"]);
+			} else {
+				c->decorate(config["unfocus_color"]);
+			}
+		}
+
+		return "success";
+	} else {
+
+		unsigned int val;
+		try {
+			val = std::stoul(args[2], NULL);
+		} catch(std::invalid_argument& e) {
+			return "value must be an integer";
+		}
+
+		config[args[1]] = val;
+		return "success";
+	}
+
+}

@@ -21,7 +21,6 @@ class Client {
 		void remove_tag(void);
 		void remove_focus(void);
 		bool match_id(xcb_drawable_t);
-		void decorate(void);
 		void map(void);
 		void focus(void);
 		void unfocus(void);

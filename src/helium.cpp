@@ -60,7 +60,7 @@ static void printevent(xcb_generic_event_t *);
 static void map_request(xcb_generic_event_t *);
 static void destroy_notify(xcb_generic_event_t *);
 static void button_press(xcb_generic_event_t *ev);
-static void expose(xcb_generic_event_t *ev);
+// static void expose(xcb_generic_event_t *ev);
 
 // functions
 static bool setup(int);
@@ -134,7 +134,7 @@ bool setup(int scrnum) {
 	events[XCB_MAP_REQUEST]					= map_request;
 	events[XCB_DESTROY_NOTIFY]      = destroy_notify;
 	events[XCB_BUTTON_PRESS]        = button_press;
-	events[XCB_EXPOSE]							= expose;
+	// events[XCB_EXPOSE]							= expose;
 
 	// setup message handling
 	msg_map["move"] = &msg_move_relative;
@@ -145,6 +145,7 @@ bool setup(int scrnum) {
 	msg_map["resize"] = &msg_resize;
 	msg_map["kill"] = &msg_kill;
 	msg_map["toggle"] = &msg_toggle;
+	msg_map["config"] = &msg_config;
 
 	// default config stuff
 	config["move_mod"] = XCB_MOD_MASK_4;
@@ -404,6 +405,7 @@ void button_press(xcb_generic_event_t *ev){
 	std::clog << "button press handled\n";
 }
 
+/*
 void expose(xcb_generic_event_t *ev) {
 	std::clog << "event: " << (ev->response_type & ~0x80) << " expose recieved\n";
 
@@ -422,6 +424,7 @@ void expose(xcb_generic_event_t *ev) {
 
 	xcb_flush(conn);
 }
+*/
 
 /*
  * msgs

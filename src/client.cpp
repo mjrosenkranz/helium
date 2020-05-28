@@ -255,15 +255,31 @@ void Client::decorate(unsigned int color) {
 	xcb_change_gc(conn, gc, XCB_GC_FOREGROUND, &tmp);
 	xcb_poly_fill_rectangle(conn, pixmap, gc, 1, rects);
 
-	uint32_t mask = XCB_CW_BACK_PIXMAP;
-	uint32_t values[] = {pixmap};
+	int offset = config["inner_width"] + config["outer_width"];
 
+	uint32_t values[] = {
+		(uint32_t) (offset),
+		(uint32_t) (offset),
+		(uint32_t) (w - 2 * offset),
+		(uint32_t) (h - 2 * offset)
+	};
+
+	uint32_t mask = XCB_CONFIG_WINDOW_X
+			| XCB_CONFIG_WINDOW_Y
+			| XCB_CONFIG_WINDOW_WIDTH
+			| XCB_CONFIG_WINDOW_HEIGHT;
+
+	xcb_configure_window (conn, id, mask, values);
+
+
+	mask = XCB_CW_BACK_PIXMAP;
+	values[0] = {pixmap};
 	// raise the window and change the color
 	xcb_change_window_attributes(conn, dec, mask, values);
 	//std::clog << "changing window color to " << std::hex << color << std::endl;
 
-	xcb_flush(conn);
 	xcb_map_window(conn, dec);
+	xcb_flush(conn);
 }
 
 
