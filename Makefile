@@ -2,7 +2,7 @@
 CXX := g++
 CXXFLAGS := -Wall -g
 
-LIBS = -lxcb
+LIBS = -lxcb -lxcb-ewmh
 
 TARGETS = helium hctrl
 

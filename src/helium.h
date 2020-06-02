@@ -4,6 +4,7 @@
 #include <map>
 #include <deque>
 #include "client.h"
+#include <xcb/xcb_ewmh.h>
 // the number of tags we have
 #define NUMTAGS 8
 #define BUFFLEN 100
@@ -15,6 +16,7 @@ extern bool visible[NUMTAGS + 1];
 extern std::deque<Client *> focus_queue;
 
 extern xcb_screen_t *screen;
+extern xcb_ewmh_connection_t *ewmh; 
 // config stuff
 extern std::map<std::string, unsigned int> config;
 

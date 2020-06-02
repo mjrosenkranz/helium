@@ -13,6 +13,7 @@
 #include <map>
 #include <csignal>
 #include <cmath>
+#include <xcb/xcb_ewmh.h>
 
 #include "client.h"
 #include "msg.h"
@@ -36,6 +37,8 @@ bool visible[NUMTAGS + 1];
 std::deque<Client *> focus_queue;
 
 xcb_connection_t *conn = NULL;
+// ewhm connection
+xcb_ewmh_connection_t *ewmh = NULL; 
 // the screen
 xcb_screen_t *screen = NULL;
 // number of screens connected
@@ -58,12 +61,14 @@ static xcb_screen_t *xcb_screen_of_display(xcb_connection_t *, int);
 // event handlers
 static void printevent(xcb_generic_event_t *);
 static void map_request(xcb_generic_event_t *);
+//static void configure_request(xcb_generic_event_t *);
 static void destroy_notify(xcb_generic_event_t *);
 static void button_press(xcb_generic_event_t *ev);
 // static void expose(xcb_generic_event_t *ev);
 
 // functions
 static bool setup(int);
+static void ewmh_setup(void);
 static bool socket_setup();
 static void rw_socket();
 static void run();
@@ -103,8 +108,6 @@ bool setup(int scrnum) {
 	if (!screen)
 		return false;
 
-	// TODO: ewmh stuff at some point
-	
 	// valuemask we want of the root window
 	unsigned int values[1] = {
 		XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT
@@ -116,6 +119,9 @@ bool setup(int scrnum) {
 	xcb_generic_error_t *error = xcb_request_check(conn,
 			xcb_change_window_attributes_checked(conn, screen->root,
 			XCB_CW_EVENT_MASK, values));
+
+
+	ewmh_setup();
 
 	// flush changes
 	xcb_flush(conn);
@@ -131,7 +137,8 @@ bool setup(int scrnum) {
 		events[i] = printevent;
 
 	// assign events we actually have
-	events[XCB_MAP_REQUEST]					= map_request;
+	//events[XCB_CONFIGURE_REQUEST]	= configure_request;
+	events[XCB_MAP_REQUEST]			= map_request;
 	events[XCB_DESTROY_NOTIFY]      = destroy_notify;
 	events[XCB_BUTTON_PRESS]        = button_press;
 	// events[XCB_EXPOSE]							= expose;
@@ -155,6 +162,10 @@ bool setup(int scrnum) {
 	config["outer_width"] = 10;
 	config["inner_width"] = 3;
 	config["snap"] = 20;
+
+	for (int i = 1; i < NUMTAGS + 1; ++i) {
+		config["tag_color_" + std::to_string(i)] = 0x3f3f3f;
+	}
 
 
 	// set all tags to visible
@@ -222,6 +233,18 @@ xcb_screen_of_display(xcb_connection_t *con, int s)
 	return NULL;
 }
 
+void ewmh_setup(void)
+{
+	if (!(ewmh = (xcb_ewmh_connection_t*) calloc(1, sizeof(xcb_ewmh_connection_t))))
+		printf("Fail\n");
+
+	xcb_intern_atom_cookie_t *cookie = xcb_ewmh_init_atoms(conn, ewmh);
+	if(!xcb_ewmh_init_atoms_replies(ewmh, cookie, NULL)){
+        fprintf(stderr,"%s\n","xcb_ewmh_init_atoms_replies:faild.");
+        exit(1);
+    }
+}
+
 /*
  * Event stuff
  */
@@ -229,10 +252,39 @@ void printevent(xcb_generic_event_t *ev) {
 	std::clog << "event: " << (ev->response_type & ~0x80) << "\n";
 }
 
+/*
+void configure_request(xcb_generic_event_t *ev) {
+
+	std::clog << "event: " << (ev->response_type & ~0x80) << " configure request recieved\n";
+	xcb_configure_request_event_t *e = (xcb_configure_request_event_t *) ev;
+}
+*/
+
+
 void map_request(xcb_generic_event_t *ev) {
 	std::clog << "event: " << (ev->response_type & ~0x80) << " map request recieved\n";
 	xcb_map_request_event_t *e = (xcb_map_request_event_t *) ev;
 
+
+	// check if this is a window we should even be managing
+	xcb_ewmh_get_atoms_reply_t win_type;
+	if (xcb_ewmh_get_wm_window_type_reply(ewmh,
+		xcb_ewmh_get_wm_window_type(ewmh, e->window), &win_type, NULL) == 1) {
+		// look through all atoms that are set
+		for (int i = 0; i < (int) win_type.atoms_len; ++i) {
+			xcb_atom_t a = win_type.atoms[i];
+			// if its a toolbar or whatever than don't manage it
+			if (a == ewmh->_NET_WM_WINDOW_TYPE_TOOLBAR || a
+					== ewmh->_NET_WM_WINDOW_TYPE_DOCK || a
+					== ewmh->_NET_WM_WINDOW_TYPE_DESKTOP ) {
+				xcb_map_window(conn,e->window);
+				std::clog << "unmanaged " << std::hex << e->window << " mapped\n";
+				xcb_flush(conn);
+				return;
+			}
+		}
+		xcb_ewmh_get_atoms_reply_wipe(&win_type);
+	}
 	// check if we are already managing this window
 	// if so we dont want to do anything
 	if (NULL != get_client(&e->window)) {
@@ -240,6 +292,7 @@ void map_request(xcb_generic_event_t *ev) {
 		return;
 	}
 		
+
 	
 	// if not set up a new client
 	Client *c = (Client *) malloc(sizeof(Client));
@@ -249,7 +302,6 @@ void map_request(xcb_generic_event_t *ev) {
 	c->change_tag(0);
 	c->print("map:");
 	c->focus();
-	//c->raise(conn);
 	// map the window
 	xcb_flush(conn);
 	std::clog << "map request handled\n";

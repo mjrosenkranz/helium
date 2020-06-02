@@ -15,6 +15,7 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 	tag = -1;
 	conn = _conn;
 
+	// get id for decoration window
 	dec = xcb_generate_id(_conn);
 
 	// set geometry to dummy values
@@ -22,18 +23,25 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 	y = 0;
 	w = 100;
 	h = 100;
+
+
+	int offset = config["outer_width"] + config["inner_width"];
 	// get the window geometry
 	xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(conn,
 			xcb_get_geometry(conn, id), NULL);
 
 
-	int offset = config["outer_width"] + config["inner_width"];
 
 	if (geom != NULL) {
 		x = geom->x;
 		y = geom->y;
-		w = geom->width + (2 * offset);
-		h = geom->height + (2 * offset);
+		if (geom->width < 100 || geom->height < 100) {
+			w = 200 + (2 * offset);
+			h = 200  + (2 * offset);
+		} else {
+			w = geom->width + (2 * offset);
+			h = geom->height + (2 * offset);
+		}
 	}
 
 	free(geom);
@@ -91,7 +99,6 @@ void Client::unmanage(void) {
 	xcb_ungrab_button(conn, XCB_BUTTON_INDEX_ANY, id, XCB_MOD_MASK_ANY);
 	// remove the window from tags
 	remove_tag();
-	unfocus();
 
 	// destroy the decoration
 	xcb_destroy_window(conn, dec);
@@ -159,6 +166,8 @@ void Client::change_tag(int t) {
 		set_visible(false);
 	}
 
+	decorate();
+
 	print("change tag");
 }
 
@@ -182,18 +191,17 @@ void Client::focus(void) {
 	}
 
 
-	// unfocus the focused window
-	Client *focused = focus_queue.front();
-	if (focus_queue.size() > 0 && focused != this)
-		focused->unfocus();
-	
 	// add to the front of the focus queue
 	focus_queue.push_front(this);
+
+	// if there is a window that was focused before this change its color
+	if (focus_queue.size() >= 2)
+		focus_queue[1]->decorate();
 
 	uint32_t mask = XCB_CONFIG_WINDOW_STACK_MODE;
 	uint32_t values[] = { XCB_STACK_MODE_ABOVE };
 
-	decorate(config["focus_color"]);
+	decorate();
 	// raise the window and change the color
 	xcb_configure_window(conn, dec, mask, values);
 	//xcb_configure_window(conn, id, mask, values);
@@ -207,9 +215,11 @@ void Client::focus(void) {
 	xcb_flush(conn);
 }
 
+/*
 void Client::unfocus(void) {
 	decorate(config["unfocus_color"]);
 }
+*/
 
 void Client::remove_focus(void) {
 
@@ -228,7 +238,14 @@ void Client::remove_focus(void) {
 		c->focus();
 	}
 }
-void Client::decorate(unsigned int color) {
+void Client::decorate() {
+
+	unsigned int color;
+	if (this == focus_queue.front()) {
+		color = config["focus_color"];
+	} else {
+		color = config["unfocus_color"];
+	}
 
 	xcb_unmap_window(conn, dec);
 
@@ -252,6 +269,9 @@ void Client::decorate(unsigned int color) {
     	(uint16_t) (h - (2 * config["outer_width"]))
 	};
 	unsigned int tmp = 0x00ff00;
+	if (tag != 0) {
+		tmp = config["tag_color_" + std::to_string(tag)];
+	}
 	xcb_change_gc(conn, gc, XCB_GC_FOREGROUND, &tmp);
 	xcb_poly_fill_rectangle(conn, pixmap, gc, 1, rects);
 
@@ -350,11 +370,7 @@ bool Client::resize_relative(std::string dir, int amt) {
 
 	xcb_flush(conn);
 
-	if (focus_queue.front() == this) {
-		decorate(config["focus_color"]);
-	} else {
-		decorate(config["unfocus_color"]);
-	}
+	decorate();
 
 	return true;
 }
@@ -413,7 +429,7 @@ void Client::set_visible(bool state) {
 	} else {
 		std::clog << "unmapping\n";
 		remove_focus();
-		unfocus();
+		//unfocus();
 		xcb_unmap_window(conn, dec);
 	}
 

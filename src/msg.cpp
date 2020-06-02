@@ -248,11 +248,7 @@ std::string msg_config(std::vector<std::string> args) {
 
 		// repaint all visible windows
 		for (Client *c : focus_queue) {
-			if (c == focus_queue.front()) {
-				c->decorate(config["focus_color"]);
-			} else {
-				c->decorate(config["unfocus_color"]);
-			}
+			c->decorate();
 		}
 
 		return "success";

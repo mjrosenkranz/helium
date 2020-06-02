@@ -14,17 +14,17 @@ class Client {
 	public:
 		unsigned int tag; // tag this window is assigned to
 		Client(xcb_window_t, xcb_connection_t *);
-		void unmanage(void);
-		void kill(void);
+		void unmanage();
+		void kill();
 		void print(std::string);
 		void change_tag(int);
-		void remove_tag(void);
-		void remove_focus(void);
+		void remove_tag();
+		void remove_focus();
 		bool match_id(xcb_drawable_t);
-		void map(void);
-		void focus(void);
-		void unfocus(void);
-		void decorate(unsigned int);
+		void map();
+		void focus();
+		void unfocus();
+		void decorate();
 		void move_relative(int, int);
 		void move_absolute(int, int);
 		bool resize_relative(std::string, int);
