@@ -387,8 +387,6 @@ void button_press(xcb_generic_event_t *ev){
 		xcb_motion_notify_event_t *mv;
 
 		do {
-
-
 			while(!(tmpev = xcb_wait_for_event(conn)))
 						xcb_flush(conn);
 
@@ -438,6 +436,7 @@ void button_press(xcb_generic_event_t *ev){
 				case XCB_BUTTON_PRESS:
 				case XCB_BUTTON_RELEASE:
 					grabbing = false;
+					c->decorate();
 					break;
 			}
 

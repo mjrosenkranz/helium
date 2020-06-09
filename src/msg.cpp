@@ -174,8 +174,11 @@ std::string msg_resize(std::vector<std::string> args) {
 	try {
 		int amt = std::stoi(args[2], NULL);
 
-		if (!c->resize_relative(args[1], amt))
+		if (c->resize_relative(args[1], amt)) {
+			c->decorate();
+		} else {
 			return args[1] + " not a valid direction";
+		}
 
 		return "success";
 		

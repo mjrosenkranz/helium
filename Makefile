@@ -38,5 +38,10 @@ server:
 	@echo "starting server"
 	@pidof Xephyr &> /dev/null || Xephyr -screen 800x600 :1 &> /dev/null & 
 
-run: server hctrl helium
+sxhkd:
+	@echo "starting sxhkd"
+	@pkill sxhkd &> /dev/null
+	@DISPLAY=:1 sxhkd -c examples/sxhkdrc  &> /dev/null & 
+
+run: server sxhkd hctrl helium
 	DISPLAY=:1 ./helium

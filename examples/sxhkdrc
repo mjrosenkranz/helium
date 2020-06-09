@@ -1,0 +1,45 @@
+#
+# wm independent hotkeys
+#
+
+# terminal emulator
+super + Return
+	urxvt
+
+# program launcher
+super + @space
+	drun
+
+# make sxhkd reload its configuration files:
+super + Escape
+	pkill -USR1 -x sxhkd
+
+
+# close and kill
+super + {_,shift + }w
+	hctrl kill
+
+# focus the node in the given direction
+#super + {_,shift + }{h,j,k,l}
+#	bspc node -{f,s} {west,south,north,east}
+
+super + {n,p}
+	hctrl focus {next,prev}
+
+# move in direction
+super + shift + {h,j,k,l}
+	hctrl move {-20 0, 0 20, 0 -20, 20 0}
+
+# expand a window by moving one of its side outward
+super + {Left,Down,Up,Right}
+	hctrl resize {west 20, south 20, north 20, east 20}
+
+# contract a window by moving one of its side inward
+super + shift + {Left,Down,Up,Right}
+	hctrl resize {east -20, north -20, south -20, west -20}
+
+super + {1, 2, 3, 4, 5, 6, 7, 8}
+	hctrl toggle {1, 2, 3, 4, 5, 6, 7, 8}
+
+super + shift + {0, 1, 2, 3, 4, 5, 6, 7, 8}
+	hctrl tag {0, 1, 2, 3, 4, 5, 6, 7, 8}

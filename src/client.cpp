@@ -304,10 +304,11 @@ void Client::decorate() {
 
 
 void Client::move_relative(int _x, int _y) {
+	std::clog << "old x: " << x << std::endl;
 	x += _x;
+	std::clog << "new x: " << x << std::endl;
 	y += _y;
 
-	// std::clog << x << " vs " << nx << std::endl;
 	snap();
 
 	int values[] = { x, y };
@@ -370,7 +371,7 @@ bool Client::resize_relative(std::string dir, int amt) {
 
 	xcb_flush(conn);
 
-	decorate();
+	// decorate();
 
 	return true;
 }
@@ -438,12 +439,17 @@ void Client::set_visible(bool state) {
 
 void Client::snap() {
 	int nx, ny;
-	nx = std::abs(x) + config["snap"]/2;
-	nx -= nx % config["snap"];
-	x = x > 0 ? nx : -nx;
-	ny = std::abs(y) + config["snap"]/2;
-	ny -= ny % config["snap"];
-	y = y > 0 ? ny : -ny;
+		nx = std::abs(x) + config["snap"]/2;
+		nx -= nx % config["snap"];
+		x = x > 0 ? nx : -nx;
+	
+	if ((y % config["snap"]) != 0) {
+		ny = std::abs(y) + config["snap"]/2;
+		ny -= ny % config["snap"];
+		y = y > 0 ? ny : -ny;
+	}
+
+
 	w = w + config["snap"]/2;
 	w -= w % config["snap"];
 	h = h + config["snap"]/2;
