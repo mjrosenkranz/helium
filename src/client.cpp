@@ -74,20 +74,21 @@ Client::Client (xcb_window_t _id, xcb_connection_t *_conn) {
 	values[0] = XCB_EVENT_MASK_BUTTON_PRESS
 		| XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
 	mask = XCB_CW_EVENT_MASK;
+
 	xcb_change_window_attributes(conn,
 					dec, mask, values);
 
+	values[0] = XCB_EVENT_MASK_BUTTON_PRESS;
+	xcb_change_window_attributes(conn,
+				id, mask, values);
 
-
-	// resize child window
 
 	xcb_reparent_window(conn,
 	      id, dec, offset, offset);
 
 	// let us get events for this window
 	// this gets the button with not modifier
-	xcb_grab_button(conn, false, id, XCB_EVENT_MASK_BUTTON_PRESS,
-									// stop the cursor  continue the keyboard
+	xcb_grab_button(conn, true, id, XCB_EVENT_MASK_BUTTON_PRESS,
 	                XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_ASYNC,
 	                XCB_NONE, XCB_NONE, XCB_BUTTON_INDEX_ANY, XCB_MOD_MASK_ANY);
 }
@@ -184,6 +185,11 @@ void Client::remove_tag(void) {
 void Client::focus(void) {
 	std::clog << "focusing: " << std::hex << id << std::endl;
 
+	// dont do anything if we are already focused
+	if (focus_queue.size() > 0 && focus_queue.front() == this) {
+		std::clog << "already focused\n";
+	}
+
 	// remove this window from the focuse queue
 	for (int i = 0; i < (int) focus_queue.size(); i++) {
 		if (focus_queue[i] == this)
@@ -206,10 +212,13 @@ void Client::focus(void) {
 	xcb_configure_window(conn, dec, mask, values);
 	//xcb_configure_window(conn, id, mask, values);
 
+	// xcb_ungrab_button(conn, XCB_BUTTON_INDEX_ANY, id, XCB_MOD_MASK_ANY);
 
 	// focus the client
 	xcb_set_input_focus(conn, XCB_INPUT_FOCUS_POINTER_ROOT, id,
 			XCB_CURRENT_TIME);
+
+
 
 	print_focus();
 	xcb_flush(conn);
@@ -299,6 +308,7 @@ void Client::decorate() {
 	//std::clog << "changing window color to " << std::hex << color << std::endl;
 
 	xcb_map_window(conn, dec);
+
 	xcb_flush(conn);
 }
 

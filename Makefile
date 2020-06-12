@@ -40,8 +40,7 @@ server:
 
 sxhkd:
 	@echo "starting sxhkd"
-	@pkill sxhkd &> /dev/null
-	@DISPLAY=:1 sxhkd -c examples/sxhkdrc  &> /dev/null & 
+	@pkill sxhkd &> /dev/null || DISPLAY=:1 sxhkd -c examples/sxhkdrc  &> /dev/null & 
 
 run: server sxhkd hctrl helium
 	DISPLAY=:1 ./helium

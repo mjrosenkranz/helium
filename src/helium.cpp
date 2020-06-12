@@ -344,9 +344,13 @@ void button_press(xcb_generic_event_t *ev){
 	if (c == NULL)
 		return;
 	
+
+	// allow replaying ofthe click
+	xcb_allow_events(conn, XCB_ALLOW_REPLAY_POINTER, e->time);
+
+
 	c->focus();
-
-
+	//
 	// check if a mod is down
 	if (e->state != XCB_NONE) {
 		// in that case we want to capture the cursor movement
@@ -410,14 +414,6 @@ void button_press(xcb_generic_event_t *ev){
 						my = ty;
 						ty = 0;
 					}
-					/*
-					if (e->state == config["move_mod"]) {
-						c->move_relative(mv->root_x - lx, mv->root_y - ly);
-					} else if(e->state == config["resize_mod"]) {
-						c->resize_mouse(mv->root_x, lx, mv->root_y, ly);
-					}
-
-					*/
 					// set the last location
 					lx = mv->root_x;
 					ly = mv->root_y;
@@ -447,11 +443,12 @@ void button_press(xcb_generic_event_t *ev){
 
 	}
 
+
 	free(q);
 
 
 	// allow the pointer to be used
-	xcb_allow_events(conn, XCB_ALLOW_SYNC_POINTER, e->time);
+	//xcb_allow_events(conn, XCB_ALLOW_REPLAY_POINTER, e->time);
 	xcb_flush(conn);
 	std::clog << "button press handled\n";
 }

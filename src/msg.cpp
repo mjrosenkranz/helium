@@ -134,6 +134,8 @@ std::string msg_focus(std::vector<std::string> args) {
 		return "success";
 	}
 	if (args[1].compare("next") == 0) {
+
+		Client *oldfront = focus_queue.front();
 		std::rotate(focus_queue.begin(),
 				focus_queue.begin() + focus_queue.size() - 1,
 				focus_queue.end());
@@ -142,6 +144,7 @@ std::string msg_focus(std::vector<std::string> args) {
 		if (c == NULL)
 			return "no window focused";
 		c->focus();
+		oldfront->focus();
 		return "success";
 	}
 
