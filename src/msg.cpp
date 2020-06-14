@@ -155,7 +155,7 @@ std::string msg_focus(std::vector<std::string> args) {
 	}
 
 	// focus in direction
-	if (args[1].compare("north") == 0) {
+	if (args[1].compare("north") == 0 || args[1].compare("south") == 0) {
 		// arbitrarily large number
 		Client *last_focus = focus_queue.front();
 		// corners of our focused window
@@ -170,14 +170,18 @@ std::string msg_focus(std::vector<std::string> args) {
 
 			std::vector<int> tmpc = tmp->get_corners();
 			// make sure the top corner is higher than ours
-			if (tmpc[1] > fc[1])
+			if (tmpc[1] > fc[1] && args[1].compare("north") == 0)
+				continue;
+
+			// make sure the top corner is lower than ours
+			if (tmpc[1] < fc[1] && args[1].compare("south") == 0)
 				continue;
 
 			for (int i = 0; i < 8; i+=2) {
 				// get the closest corner to the top left
 				// discard corner if we are "above it"
 				// aka our y value is greater
-				if (fc[1] < tmpc[i+1])
+				if (fc[1] < tmpc[i+1] && args[1].compare("north") == 0)
 					continue;
 				
 
@@ -203,9 +207,7 @@ std::string msg_focus(std::vector<std::string> args) {
 		return "success";
 	}
 
-
-	if (args[1].compare("south") == 0) {
-		// arbitrarily large number
+	if (args[1].compare("east") == 0 || args[1].compare("west") == 0 ) {
 		Client *last_focus = focus_queue.front();
 		// corners of our focused window
 		std::vector<int> fc = last_focus->get_corners();
@@ -217,16 +219,18 @@ std::string msg_focus(std::vector<std::string> args) {
 			if (last_focus == tmp)
 				continue;
 
-
 			std::vector<int> tmpc = tmp->get_corners();
-			// make sure the top corner is lower than ours
-			if (tmpc[1] < fc[1])
-				continue;
 
 			for (int i = 0; i < 8; i+=2) {
 				// get the closest corner to the top left
 				// discard corner if we are "above it"
 				// aka our y value is greater
+				if (fc[2] > tmpc[i] && args[1].compare("east") == 0)
+					continue;
+
+				if (fc[0] < tmpc[i] && args[1].compare("west") == 0)
+					continue;
+				
 
 				int dtl = dist(tmpc[i], tmpc[i+1], fc[0], fc[1]);
 
@@ -235,7 +239,7 @@ std::string msg_focus(std::vector<std::string> args) {
 					to_focus = tmp;
 				}
 				// get the closest corner to the top right
-				int dtr = dist(tmpc[i], tmpc[i+1], fc[0], fc[1]);
+				int dtr = dist(tmpc[i], tmpc[i+1], fc[2], fc[3]);
 
 				if (dtr < best) {
 					best = dtr;
