@@ -465,3 +465,23 @@ void Client::snap() {
 	h = h + config["snap"]/2;
 	h -= h % config["snap"];
 }
+
+
+std::vector<int> Client::get_corners() {
+	// corners are clockwise from top right
+	std::vector<int> ret(8);
+
+	ret[0] = x;
+	ret[1] = y;
+
+	ret[2] = x + w;
+	ret[3] = y;
+
+	ret[4] = x + w;
+	ret[5] = y + h;
+
+	ret[6] = x;
+	ret[7] = y + h;
+
+	return ret;
+}

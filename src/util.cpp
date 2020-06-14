@@ -1,6 +1,7 @@
 #include <vector>
 #include <xcb/xcb.h>
 #include <iostream>
+#include <cmath>
 
 #include "util.h"
 #include "client.h"
@@ -52,3 +53,7 @@ Client *get_client(xcb_drawable_t *id) {
 	return NULL;
 }
 
+int dist(int x1, int y1, int x2, int y2) {
+	
+	return std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2) * 1.0); 
+}

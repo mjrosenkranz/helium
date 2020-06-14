@@ -8,5 +8,6 @@ void print_tags();
 void print_focus();
 //void update_tag(int);
 Client *get_client(xcb_drawable_t*);
+int dist(int, int, int, int);
 
 #endif

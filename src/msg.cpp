@@ -2,6 +2,7 @@
 #include <iostream>
 #include <algorithm>
 #include <deque>
+#include <climits>
 #include "helium.h"
 #include "client.h"
 #include "util.h"
@@ -117,8 +118,12 @@ std::string msg_focus(std::vector<std::string> args) {
 	if (args.size() < 2) 
 		return "need a window or direction to focus";
 
+	// check if there are even other windows to focus
+	if (focus_queue.size() < 2)
+		return "success";
+
 	// client we are focusing
-	Client *c;
+	Client *to_focus;
 
 	// is is previous or next?
 	if (args[1].compare("prev") == 0) {
@@ -126,37 +131,134 @@ std::string msg_focus(std::vector<std::string> args) {
 				focus_queue.begin() + 1,
 				focus_queue.end());
 
-		c = focus_queue.front();
+		to_focus = focus_queue.front();
 
-		if (c == NULL)
+		if (to_focus == NULL)
 			return "no window focused";
-		c->focus();
+		to_focus->focus();
 		return "success";
 	}
+	// TODO: fix this guy
 	if (args[1].compare("next") == 0) {
 
-		Client *oldfront = focus_queue.front();
+		Client *last_focus = focus_queue.front();
 		std::rotate(focus_queue.begin(),
 				focus_queue.begin() + focus_queue.size() - 1,
 				focus_queue.end());
 
-		c = focus_queue.front();
-		if (c == NULL)
+		to_focus = focus_queue.front();
+		if (to_focus == NULL)
 			return "no window focused";
-		c->focus();
-		oldfront->focus();
+		to_focus->focus();
+		last_focus->decorate();
+		return "success";
+	}
+
+	// focus in direction
+	if (args[1].compare("north") == 0) {
+		// arbitrarily large number
+		Client *last_focus = focus_queue.front();
+		// corners of our focused window
+		std::vector<int> fc = last_focus->get_corners();
+		Client *to_focus =  focus_queue.front();
+		double best = INT_MAX;
+		// loop through all visible
+		for (Client *tmp : focus_queue) {
+			// disregard if its the last focus
+			if (last_focus == tmp)
+				continue;
+
+			std::vector<int> tmpc = tmp->get_corners();
+			// make sure the top corner is higher than ours
+			if (tmpc[1] > fc[1])
+				continue;
+
+			for (int i = 0; i < 8; i+=2) {
+				// get the closest corner to the top left
+				// discard corner if we are "above it"
+				// aka our y value is greater
+				if (fc[1] < tmpc[i+1])
+					continue;
+				
+
+				int dtl = dist(tmpc[i], tmpc[i+1], fc[0], fc[1]);
+
+				if (dtl < best) {
+					best = dtl;
+					to_focus = tmp;
+				}
+				// get the closest corner to the top right
+				int dtr = dist(tmpc[i], tmpc[i+1], fc[2], fc[3]);
+
+				if (dtr < best) {
+					best = dtr;
+					to_focus = tmp;
+				}
+			}
+		}
+
+		to_focus->focus();
+		// distance score based on sqrt of distances
+		//
+		return "success";
+	}
+
+
+	if (args[1].compare("south") == 0) {
+		// arbitrarily large number
+		Client *last_focus = focus_queue.front();
+		// corners of our focused window
+		std::vector<int> fc = last_focus->get_corners();
+		Client *to_focus =  focus_queue.front();
+		double best = INT_MAX;
+		// loop through all visible
+		for (Client *tmp : focus_queue) {
+			// disregard if its the last focus
+			if (last_focus == tmp)
+				continue;
+
+
+			std::vector<int> tmpc = tmp->get_corners();
+			// make sure the top corner is lower than ours
+			if (tmpc[1] < fc[1])
+				continue;
+
+			for (int i = 0; i < 8; i+=2) {
+				// get the closest corner to the top left
+				// discard corner if we are "above it"
+				// aka our y value is greater
+
+				int dtl = dist(tmpc[i], tmpc[i+1], fc[0], fc[1]);
+
+				if (dtl < best) {
+					best = dtl;
+					to_focus = tmp;
+				}
+				// get the closest corner to the top right
+				int dtr = dist(tmpc[i], tmpc[i+1], fc[0], fc[1]);
+
+				if (dtr < best) {
+					best = dtr;
+					to_focus = tmp;
+				}
+			}
+		}
+
+		to_focus->focus();
+		// distance score based on sqrt of distances
+		//
 		return "success";
 	}
 
 	// try to focus window by id
 	try {
 		unsigned int id = std::stoi(args[1], NULL, 16);
-		c = get_client((xcb_drawable_t*) &id);
+		to_focus = get_client((xcb_drawable_t*) &id);
 
-		if (c == NULL)
+		if (to_focus == NULL)
 			return args[1] + " not a valid window";
 
-		c->focus();
+		to_focus->focus();
 
 		return "success";
 	} catch(std::invalid_argument& e) {

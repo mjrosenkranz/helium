@@ -1,4 +1,5 @@
 #include <xcb/xcb.h>
+#include <vector>
 
 #ifndef CLIENT_H
 #define CLIENT_H
@@ -31,6 +32,7 @@ class Client {
 		void resize_to(int, int);
 		void resize_mouse(int, int, int, int);
 		void set_visible(bool);
+		std::vector<int> get_corners();
 };
 
 #endif

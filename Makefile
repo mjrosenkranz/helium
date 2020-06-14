@@ -37,6 +37,8 @@ clean:
 server:
 	@echo "starting server"
 	@pidof Xephyr &> /dev/null || Xephyr -screen 800x600 :1 &> /dev/null & 
+	@sleep 0.5
+	@DISPLAY=:1 hsetroot -solid gray
 
 sxhkd:
 	@echo "starting sxhkd"
