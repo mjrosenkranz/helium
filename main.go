@@ -6,6 +6,7 @@ import (
 
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xevent"
+	"github.com/xen0ne/helium/config"
 	"github.com/xen0ne/helium/wm"
 )
 
@@ -17,6 +18,7 @@ func main() {
 	defer X.Conn().Close()
 
 	wm.Setup(X)
+	config.Setup()
 	AddHandlers()
 
 	// start event loop
