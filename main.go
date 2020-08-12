@@ -17,11 +17,7 @@ func main() {
 	defer X.Conn().Close()
 
 	wm.Setup(X)
-
-	xevent.MapRequestFun(
-		func(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
-			fmt.Println(ev.Window)
-		}).Connect(X, wm.Root.Id)
+	AddHandlers()
 
 	// start event loop
 	pingBefore, pingAfter, pingQuit := xevent.MainPing(X)

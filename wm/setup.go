@@ -9,15 +9,16 @@ import (
 )
 
 var (
-	x *xgbutil.XUtil
+	// X is our *XUtil
+	X *xgbutil.XUtil
 	// Root is an xwindow windo corresponding to the root window
 	Root *xwindow.Window
 )
 
 // Setup sets up event listening on the root window and assigns callbacks
 func Setup(xu *xgbutil.XUtil) {
-	x = xu
-	Root = xwindow.New(x, x.RootWin())
+	X = xu
+	Root = xwindow.New(X, X.RootWin())
 	// setup events on root window
 	mask := xproto.EventMaskPropertyChange |
 		xproto.EventMaskFocusChange |
@@ -31,5 +32,4 @@ func Setup(xu *xgbutil.XUtil) {
 	if err != nil {
 		log.Fatalf("Could not listen to Root window events: %s\n", err)
 	}
-
 }
