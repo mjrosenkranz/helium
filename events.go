@@ -20,6 +20,7 @@ func AddHandlers() {
 			} else {
 				// create new window
 				c := client.New(ev.MapRequestEvent.Window)
+				c.AddFrame()
 				c.Map()
 			}
 		}).Connect(wm.X, wm.Root.Id)

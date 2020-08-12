@@ -1,0 +1,19 @@
+Basic window management:
+ - Map window
+	- reparent
+	- decorate frame
+	- write title
+ - Movement
+	- snap to grid
+ - Focus
+	- update colors
+	- prev/next
+	- cardinal directions
+ - Tags
+	- add/remove window from tag
+	- toggle individual tags
+	- hide/show all tags except for selected
+
+Goodies:
+ - Tabbing
+ - Rounded corners
