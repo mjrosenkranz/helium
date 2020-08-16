@@ -1,18 +1,20 @@
 package client
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/BurntSushi/xgb/xproto"
+	"github.com/BurntSushi/xgbutil/ewmh"
 	"github.com/BurntSushi/xgbutil/xwindow"
-	"github.com/xen0ne/helium/frame"
 	"github.com/xen0ne/helium/wm"
 )
 
 //
 type Client struct {
-	cwin  *xwindow.Window
-	frame *frame.Frame
+	win    *xwindow.Window
+	parent *xwindow.Window
+	bar    *xwindow.Window
 }
 
 // New creates a new client from a map event
@@ -32,20 +34,31 @@ func New(id xproto.Window) *Client {
 		}
 	}
 	win := xwindow.New(wm.X, id)
+
+	// need the geometry
 	_, err = win.Geometry()
 	if err != nil {
 		log.Printf("Cannot get geometry for %x\n", id)
 	}
 
-	return &Client{win, nil}
+	win.Map()
+
+	return &Client{win, nil, nil}
 }
 
 // Map maps all the components of a Client
 func (c *Client) Map() {
-	c.cwin.Map()
+	c.parent.Map()
 }
 
-func (c *Client) AddFrame() {
-	f := frame.New(c.cwin)
-	c.frame = f
+func (c *Client) String() string {
+	return fmt.Sprintf("%x", c.win.Id)
+}
+
+func (c *Client) Focus() {
+	err := ewmh.ActiveWindowSet(wm.X, c.parent.Id)
+	if err != nil {
+		log.Printf("Cannot set active window to %s\n", c.String())
+	}
+	c.win.Focus()
 }

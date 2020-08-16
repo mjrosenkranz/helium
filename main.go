@@ -18,7 +18,7 @@ func main() {
 	defer X.Conn().Close()
 
 	wm.Setup(X)
-	config.Setup()
+	config.Defaults()
 	AddHandlers()
 
 	// start event loop
