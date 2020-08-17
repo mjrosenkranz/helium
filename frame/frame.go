@@ -16,10 +16,13 @@ var (
 	X *xgbutil.XUtil
 )
 
+// A Frame is a window which holds a client and its decorations
 type Frame struct {
-	parent, client, bar *xwindow.Window
+	parent, client *xwindow.Window
+	bar            *Bar
 }
 
+// Setup sets up the Frame struct
 func Setup(x *xgbutil.XUtil) {
 	X = x
 }
@@ -47,7 +50,7 @@ func New(c *xwindow.Window) *Frame {
 	// need the geometry
 	g, err := f.client.Geometry()
 	if err != nil {
-		log.Printf("Cannot get geometry for %x\n", c.Id)
+		log.Printf("Cannot get geometry for %x\n", f.client.Id)
 	}
 
 	f.parent, err = xwindow.Generate(X)
@@ -70,19 +73,21 @@ func New(c *xwindow.Window) *Frame {
 	return &f
 }
 
-// Map maps all the components of a Client
+// Map maps all the components of a Frame
 func (f *Frame) Map() {
 	f.parent.Map()
 	f.client.Map()
 	if f.bar != nil {
-		f.bar.Map()
+		f.bar.win.Map()
 	}
 }
 
+// String returns a string representation of a Frame
 func (f *Frame) String() string {
-	return fmt.Sprintf("%v", f)
+	return fmt.Sprintf("%x", f.client.Id)
 }
 
+// Focus alerts X of the Frame we want to focus and provides input focus
 func (f *Frame) Focus() {
 	err := ewmh.ActiveWindowSet(X, f.parent.Id)
 	if err != nil {

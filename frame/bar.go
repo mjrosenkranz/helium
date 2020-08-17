@@ -14,6 +14,10 @@ import (
 	"github.com/xen0ne/helium/config"
 )
 
+type Bar struct {
+	win *xwindow.Window
+}
+
 func (f *Frame) AddBar() {
 
 	// we can't add a bar if there is no parent
@@ -27,26 +31,29 @@ func (f *Frame) AddBar() {
 		return
 	}
 
+	b := Bar{}
+
 	g := f.client.Geom
 
-	b, err := xwindow.Generate(X)
+	var err error
+	b.win, err = xwindow.Generate(X)
 	if err != nil {
 		log.Fatalf("Could not create new id %s", err)
 	}
-	b.Create(X.RootWin(),
+	b.win.Create(X.RootWin(),
 		0, 0,
 		g.Width(), config.Bar.Height,
 		xproto.CwBackPixel, config.Bar.Focused)
 
 	// reparent bar
-	err = xproto.ReparentWindowChecked(X.Conn(), b.Id, f.parent.Id, 0, 0).Check()
+	err = xproto.ReparentWindowChecked(X.Conn(), b.win.Id, f.parent.Id, 0, 0).Check()
 	if err != nil {
 		log.Println("Could not reparent bar")
 	}
 
-	f.bar = b
+	f.bar = &b
 
-	b.Map()
+	b.win.Map()
 
 	title, err := ewmh.WmNameGet(X, f.client.Id)
 	if err != nil {
@@ -54,14 +61,18 @@ func (f *Frame) AddBar() {
 		title = "bruh"
 	}
 
-	addtext(f.bar, title, config.Bar.Focused, config.Bar.UnFocused,
-		g.Width(), g.Height())
+	b.Draw(title, config.Bar.Focused, config.Bar.UnFocused)
 }
 
-// ChangeBarColor changes the color of the given client's bar
-func (f *Frame) ChangeBarColor(n uint32) {
-	f.bar.Change(xproto.CwBackPixel, n)
-	f.bar.ClearAll()
+// Draw draws the given text to the bar with a background
+// color of bg and text color of fg
+func (b *Bar) Draw(title string, bg, fg uint32) {
+	g, err := b.win.Geometry()
+	if err != nil {
+		log.Printf("Cannot get geometry for %x\n", b.win.Id)
+	}
+
+	addtext(b.win, title, bg, fg, g.Width(), g.Height())
 }
 
 // HELPER FUNCTIONS
