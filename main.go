@@ -7,6 +7,7 @@ import (
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/xen0ne/helium/config"
+	"github.com/xen0ne/helium/frame"
 	"github.com/xen0ne/helium/wm"
 )
 
@@ -18,6 +19,7 @@ func main() {
 	defer X.Conn().Close()
 
 	wm.Setup(X)
+	frame.Setup(X)
 	config.Defaults()
 	AddHandlers()
 

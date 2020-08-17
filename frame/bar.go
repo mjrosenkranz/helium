@@ -1,4 +1,4 @@
-package client
+package frame
 
 import (
 	"image"
@@ -12,57 +12,56 @@ import (
 	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/xen0ne/helium/config"
-	"github.com/xen0ne/helium/wm"
 )
 
-func (c *Client) AddBar() {
+func (f *Frame) AddBar() {
 
 	// we can't add a bar if there is no parent
-	if c.parent == nil {
-		log.Printf("Client %s does not have a parent\n", c.String())
+	if f.parent == nil {
+		log.Printf("Frame %s does not have a parent\n", f.String())
 		return
 	}
 
-	if c.bar != nil {
-		log.Printf("Client %s already has a bar \n", c.String())
+	if f.bar != nil {
+		log.Printf("Frame %s already has a bar \n", f.String())
 		return
 	}
 
-	g := c.win.Geom
+	g := f.client.Geom
 
-	b, err := xwindow.Generate(wm.X)
+	b, err := xwindow.Generate(X)
 	if err != nil {
 		log.Fatalf("Could not create new id %s", err)
 	}
-	b.Create(wm.X.RootWin(),
+	b.Create(X.RootWin(),
 		0, 0,
 		g.Width(), config.Bar.Height,
 		xproto.CwBackPixel, config.Bar.Focused)
 
 	// reparent bar
-	err = xproto.ReparentWindowChecked(wm.X.Conn(), b.Id, c.parent.Id, 0, 0).Check()
+	err = xproto.ReparentWindowChecked(X.Conn(), b.Id, f.parent.Id, 0, 0).Check()
 	if err != nil {
 		log.Println("Could not reparent bar")
 	}
 
-	c.bar = b
+	f.bar = b
 
 	b.Map()
 
-	title, err := ewmh.WmNameGet(wm.X, c.win.Id)
+	title, err := ewmh.WmNameGet(X, f.client.Id)
 	if err != nil {
 		log.Println(err)
 		title = "bruh"
 	}
 
-	addtext(c.bar, title, config.Bar.Focused, config.Bar.UnFocused,
+	addtext(f.bar, title, config.Bar.Focused, config.Bar.UnFocused,
 		g.Width(), g.Height())
 }
 
 // ChangeBarColor changes the color of the given client's bar
-func (c *Client) ChangeBarColor(n uint32) {
-	c.bar.Change(xproto.CwBackPixel, n)
-	c.bar.ClearAll()
+func (f *Frame) ChangeBarColor(n uint32) {
+	f.bar.Change(xproto.CwBackPixel, n)
+	f.bar.ClearAll()
 }
 
 // HELPER FUNCTIONS
