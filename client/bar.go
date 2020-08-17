@@ -105,13 +105,18 @@ func addtext(bar *xwindow.Window, text string, bg, fg uint32, w, h int) {
 			return
 		}
 
-		if ew < (w - 10) {
+		if ew < (w - (2 * config.Bar.TextOffset)) {
 			break
 		}
 		runes = runes[:len(runes)-1]
 	}
 
-	_, _, err = img.Text(5, 0, IntToColor(fg), fontSize, font, string(runes))
+	x := config.Bar.TextOffset
+	if config.Bar.CenterText {
+		x = (w - ew) / 2
+	}
+
+	_, _, err = img.Text(x, 0, IntToColor(fg), fontSize, font, string(runes))
 	if err != nil {
 		log.Printf("Could not draw font to bar because: %v", err)
 		return
