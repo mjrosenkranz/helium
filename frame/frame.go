@@ -70,6 +70,8 @@ func New(c *xwindow.Window) *Frame {
 		log.Println("Could not reparent window")
 	}
 
+	f.manageEvents()
+
 	return &f
 }
 
@@ -94,4 +96,9 @@ func (f *Frame) Focus() {
 		log.Printf("Cannot set active window to %s\n", f.String())
 	}
 	f.client.Focus()
+}
+
+// Contains tells us if the given frame has a window of the given id
+func (f *Frame) Contains(id xproto.Window) bool {
+	return f.parent.Id == id || f.client.Id == id || f.bar.win.Id == id
 }

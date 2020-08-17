@@ -3,6 +3,8 @@ package wm
 import (
 	"log"
 
+	"github.com/xen0ne/helium/frame"
+
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xwindow"
@@ -13,6 +15,9 @@ var (
 	X *xgbutil.XUtil
 	// Root is an xwindow windo corresponding to the root window
 	Root *xwindow.Window
+
+	// Frames is a slice of all managed frames
+	Frames []*frame.Frame
 )
 
 // Setup sets up event listening on the root window and assigns callbacks
