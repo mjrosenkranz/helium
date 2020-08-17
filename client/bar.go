@@ -72,7 +72,7 @@ func addtext(bar *xwindow.Window, text string, bg, fg uint32, w, h int) {
 	img := xgraphics.New(bar.X, image.Rect(0, 0, w, h))
 	xgraphics.BlendBgColor(img, IntToColor(bg))
 	// open ttf
-	bs, err := ioutil.ReadFile("./extra/DejaVuSans.ttf")
+	bs, err := ioutil.ReadFile(config.Bar.FontPath)
 	if err != nil {
 		log.Fatalln(err)
 	}
