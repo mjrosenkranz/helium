@@ -6,9 +6,12 @@ import (
 
 	"github.com/BurntSushi/xgbutil"
 	"github.com/xen0ne/helium/config"
+	"github.com/xen0ne/helium/wm"
 
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil/ewmh"
+	"github.com/BurntSushi/xgbutil/xevent"
+	"github.com/BurntSushi/xgbutil/xprop"
 	"github.com/BurntSushi/xgbutil/xwindow"
 )
 
@@ -20,6 +23,8 @@ var (
 type Frame struct {
 	parent, client *xwindow.Window
 	bar            *Bar
+	state          State
+	x, y, px, py   int
 }
 
 // Setup sets up the Frame struct
@@ -62,6 +67,9 @@ func New(c *xwindow.Window) *Frame {
 		g.Width(), g.Height()+config.Bar.Height,
 		xproto.CwBackPixel, 0xffffff)
 
+	f.x = g.X()
+	f.y = g.Y()
+
 	f.Map()
 
 	err = xproto.ReparentWindowChecked(X.Conn(),
@@ -86,7 +94,7 @@ func (f *Frame) Map() {
 
 // String returns a string representation of a Frame
 func (f *Frame) String() string {
-	return fmt.Sprintf("%x", f.client.Id)
+	return fmt.Sprintf("frame client: %x", f.client.Id)
 }
 
 // Focus alerts X of the Frame we want to focus and provides input focus
@@ -96,9 +104,45 @@ func (f *Frame) Focus() {
 		log.Printf("Cannot set active window to %s\n", f.String())
 	}
 	f.client.Focus()
+	f.parent.Stack(xproto.StackModeAbove)
+	f.state = focused
 }
 
 // Contains tells us if the given frame has a window of the given id
 func (f *Frame) Contains(id xproto.Window) bool {
 	return f.parent.Id == id || f.client.Id == id || f.bar.win.Id == id
+}
+
+// Id returns the id of the frame's parent
+func (f *Frame) Id() xproto.Window {
+	return f.parent.Id
+}
+
+func (f *Frame) Close() {
+
+	wm_protocols, err := xprop.Atm(X, "WM_PROTOCOLS")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	wm_del_win, err := xprop.Atm(X, "WM_DELETE_WINDOW")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	cm, err := xevent.NewClientMessage(32, f.client.Id, wm_protocols,
+		int(wm_del_win))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = xproto.SendEventChecked(wm.X.Conn(), false, f.client.Id, 0,
+		string(cm.Bytes())).Check()
+	if err != nil {
+		log.Printf("Could not send WM_DELETE_WINDOW "+
+			"ClientMessage because: %s", err)
+	}
 }

@@ -43,7 +43,10 @@ func (f *Frame) AddBar() {
 	b.win.Create(X.RootWin(),
 		0, 0,
 		g.Width(), config.Bar.Height,
-		xproto.CwBackPixel, config.Bar.Focused)
+		xproto.CwBackPixel|xproto.CwEventMask,
+		config.Bar.Focused, xproto.EventMaskButtonPress|
+			xproto.EventMaskButtonRelease|
+			xproto.EventMaskButtonMotion)
 
 	// reparent bar
 	err = xproto.ReparentWindowChecked(X.Conn(), b.win.Id, f.parent.Id, 0, 0).Check()
@@ -60,6 +63,11 @@ func (f *Frame) AddBar() {
 		log.Println(err)
 		title = "bruh"
 	}
+
+	// add press handlers
+	f.handleBarPress().Connect(X, b.win.Id)
+	f.handleBarRelease().Connect(X, b.win.Id)
+	f.handleBarMotion().Connect(X, b.win.Id)
 
 	b.Draw(title, config.Bar.Focused, config.Bar.UnFocused)
 }

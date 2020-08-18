@@ -13,6 +13,7 @@ import (
 // AddHandlers adds the event handlers used by the wm
 func AddHandlers() {
 	xevent.MapRequestFun(handleMapReq).Connect(wm.X, wm.Root.Id)
+	xevent.DestroyNotifyFun(handleDestroy).Connect(wm.X, wm.Root.Id)
 }
 
 func handleMapReq(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
@@ -28,4 +29,8 @@ func handleMapReq(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
 		f.Focus()
 		wm.AddFrame(f)
 	}
+}
+
+func handleDestroy(X *xgbutil.XUtil, ev xevent.DestroyNotifyEvent) {
+	log.Printf("destroy on %x", ev.DestroyNotifyEvent.Window)
 }
