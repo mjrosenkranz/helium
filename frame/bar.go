@@ -6,6 +6,10 @@ import (
 	"io/ioutil"
 	"log"
 
+	"github.com/BurntSushi/xgbutil"
+	"github.com/BurntSushi/xgbutil/mousebind"
+	"github.com/BurntSushi/xgbutil/xevent"
+
 	"github.com/BurntSushi/freetype-go/freetype"
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil/ewmh"
@@ -60,11 +64,19 @@ func (f *Frame) AddBar() {
 
 	f.UpdateBar()
 
-	// add press handlers
-	f.handleBarPress().Connect(X, b.win.Id)
-	f.handleBarRelease().Connect(X, b.win.Id)
-	f.handleBarMotion().Connect(X, b.win.Id)
+	// add drag movement
+	mousebind.Drag(X, f.bar.win.Id, f.bar.win.Id,
+		"1", false,
+		f.moveDragBegin, f.moveDragStep, f.moveDragEnd)
 
+	// add window killing
+	err = mousebind.ButtonReleaseFun(
+		func(xu *xgbutil.XUtil, event xevent.ButtonReleaseEvent) {
+			f.Close()
+		}).Connect(X, f.bar.win.Id, "2", false, false)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 // UpdateBar updates the title of the frames bar

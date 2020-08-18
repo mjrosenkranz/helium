@@ -1,7 +1,10 @@
 package frame
 
 import (
+	"fmt"
 	"log"
+
+	"github.com/BurntSushi/xgbutil/xcursor"
 
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
@@ -17,14 +20,21 @@ func (f *Frame) manageEvents() {
 	if err != nil {
 		log.Println(err)
 	}
+	// tell us if the client is killed
 	f.cdestroyNotify().Connect(X, f.client.Id)
-	mousebind.ButtonPressFun(
+
+	// add focous on click
+	err = mousebind.ButtonPressFun(
 		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
 			xproto.AllowEvents(X.Conn(), xproto.AllowReplayPointer, 0)
 			f.Focus()
-			mousebind.Detach(X, f.client.Id)
-		}).Connect(X, f.client.Id,
-		"1", false, true)
+		}).Connect(X, f.client.Id, "1", false, true)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	mousebind.Drag(X, f.client.Id, f.client.Id, "Mod1-1", true,
+		f.moveDragBegin, f.moveDragStep, f.moveDragEnd)
 }
 
 func (f *Frame) cdestroyNotify() xevent.DestroyNotifyFun {
@@ -58,18 +68,39 @@ func (f *Frame) cdestroyNotify() xevent.DestroyNotifyFun {
 	return xevent.DestroyNotifyFun(fn)
 }
 
-func (f *Frame) handleBarPress() xevent.ButtonPressFun {
-	fn := func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
-		if ev.Detail == 1 {
-			f.px = int(ev.RootX)
-			f.py = int(ev.RootY)
-			f.parent.Stack(xproto.StackModeAbove)
-			f.Focus()
-			f.state = clicked
-		}
+func (f *Frame) moveDragBegin(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int) (bool, xproto.Cursor) {
+	f.px = rootX
+	f.py = rootY
+	f.parent.Stack(xproto.StackModeAbove)
+	f.Focus()
+	f.state = clicked
+
+	cur, err := xcursor.CreateCursor(X, xcursor.Gumby)
+	if err != nil {
+		log.Println(err)
+		return false, 0
 	}
 
-	return xevent.ButtonPressFun(fn)
+	return true, cur
+}
+
+func (f *Frame) moveDragStep(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int) {
+	if f.state == clicked {
+		dx := rootX - f.px
+		dy := rootY - f.py
+
+		f.x += dx
+		f.y += dy
+		f.parent.Move(f.x, f.y)
+
+		f.px = rootX
+		f.py = rootY
+	}
+}
+
+func (f *Frame) moveDragEnd(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int) {
+	f.state = focused
+	f.Focus()
 }
 
 func (f *Frame) handleBarMotion() xevent.MotionNotifyFun {

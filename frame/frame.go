@@ -25,6 +25,7 @@ type Frame struct {
 	bar            *Bar
 	state          State
 	x, y, px, py   int
+	tag            int
 }
 
 // Setup sets up the Frame struct
@@ -74,6 +75,9 @@ func New(c *xwindow.Window) *Frame {
 	f.x = g.X()
 	f.y = g.Y()
 
+	// set the tag to initial
+	f.tag = 0
+
 	f.Map()
 
 	err = xproto.ReparentWindowChecked(X.Conn(),
@@ -122,7 +126,6 @@ func (f *Frame) Focus() {
 	wm.FoucusQ = wm.RemoveFrame(f, wm.FoucusQ)
 	// add to focus queue
 	wm.FoucusQ = wm.AddFrame(f, wm.FoucusQ)
-	fmt.Printf("focus q: %+v\n", wm.FoucusQ)
 }
 
 func (f *Frame) Unfocus() {
