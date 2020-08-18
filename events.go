@@ -26,8 +26,8 @@ func handleMapReq(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
 		// create new window
 		f := frame.New(win)
 		f.AddBar()
-		// f.Focus()
-		wm.AddFrame(f)
+		f.Focus()
+		wm.ManagedFrames = wm.AddFrame(f, wm.ManagedFrames)
 	}
 }
 

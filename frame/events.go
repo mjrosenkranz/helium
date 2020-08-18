@@ -1,39 +1,59 @@
 package frame
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
+	"github.com/BurntSushi/xgbutil/mousebind"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/xen0ne/helium/wm"
 )
 
 func (f *Frame) manageEvents() {
 	err := f.client.Listen(xproto.EventMaskPropertyChange |
-		xproto.EventMaskStructureNotify | xproto.EventMaskButtonPress)
+		xproto.EventMaskStructureNotify)
 
 	if err != nil {
 		log.Println(err)
 	}
 	f.cdestroyNotify().Connect(X, f.client.Id)
-	f.cButtonPress().Connect(X, f.client.Id)
-}
-
-func (f *Frame) cButtonPress() xevent.ButtonPressFun {
-	fn := func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
-		fmt.Println("clicky")
-	}
-	return xevent.ButtonPressFun(fn)
+	mousebind.ButtonPressFun(
+		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
+			xproto.AllowEvents(X.Conn(), xproto.AllowReplayPointer, 0)
+			f.Focus()
+			mousebind.Detach(X, f.client.Id)
+		}).Connect(X, f.client.Id,
+		"1", false, true)
 }
 
 func (f *Frame) cdestroyNotify() xevent.DestroyNotifyFun {
 	fn := func(X *xgbutil.XUtil, ev xevent.DestroyNotifyEvent) {
 		log.Printf("destroy notify for %x\n", ev.Window)
+
+		// get the last destroy notify
+		X.Sync()
+		xevent.Read(X, false)
+
+		for i, ee := range xevent.Peek(X) {
+			if dn, ok := ee.Event.(xproto.DestroyNotifyEvent); ok {
+				if dn.Window == ev.Window {
+					log.Printf("another destroy for %x\n", ev.Window)
+					xevent.DequeueAt(X, i)
+				}
+			}
+		}
+
+		flast := wm.FoucusQ[0].Id() == f.Id()
+		wm.FoucusQ = wm.RemoveFrame(f, wm.FoucusQ)
+
+		if len(wm.FoucusQ) > 0 && flast {
+			wm.FoucusQ[0].Focus()
+		}
+
 		f.bar.win.Destroy()
 		f.parent.Destroy()
-		wm.RemoveFrame(f)
+		wm.ManagedFrames = wm.RemoveFrame(f, wm.ManagedFrames)
 	}
 	return xevent.DestroyNotifyFun(fn)
 }
@@ -41,10 +61,11 @@ func (f *Frame) cdestroyNotify() xevent.DestroyNotifyFun {
 func (f *Frame) handleBarPress() xevent.ButtonPressFun {
 	fn := func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
 		if ev.Detail == 1 {
-			f.state = clicked
 			f.px = int(ev.RootX)
 			f.py = int(ev.RootY)
 			f.parent.Stack(xproto.StackModeAbove)
+			f.Focus()
+			f.state = clicked
 		}
 	}
 

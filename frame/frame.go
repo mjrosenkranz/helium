@@ -110,6 +110,24 @@ func (f *Frame) Focus() {
 	f.client.FocusParent(xproto.TimeCurrentTime)
 	f.parent.Stack(xproto.StackModeAbove)
 	f.state = focused
+
+	f.UpdateBar()
+
+	// if there is a previously focued, tell them to unfocus
+	if len(wm.FoucusQ) > 0 && wm.FoucusQ[0].Id() != f.Id() {
+		wm.FoucusQ[0].Unfocus()
+	}
+
+	// remove from focus queue
+	wm.FoucusQ = wm.RemoveFrame(f, wm.FoucusQ)
+	// add to focus queue
+	wm.FoucusQ = wm.AddFrame(f, wm.FoucusQ)
+	fmt.Printf("focus q: %+v\n", wm.FoucusQ)
+}
+
+func (f *Frame) Unfocus() {
+	f.state = unfocused
+	f.UpdateBar()
 }
 
 // Contains tells us if the given frame has a window of the given id

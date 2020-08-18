@@ -13,9 +13,6 @@ var (
 	X *xgbutil.XUtil
 	// Root is an xwindow windo corresponding to the root window
 	Root *xwindow.Window
-
-	// ManagedFrames is a slice of all managed frames
-	ManagedFrames []Frame
 )
 
 // Setup sets up event listening on the root window and assigns callbacks

@@ -6,6 +6,14 @@ import (
 	"github.com/BurntSushi/xgb/xproto"
 )
 
+var (
+	// ManagedFrames is a slice of all managed frames
+	ManagedFrames []Frame
+
+	// FocusQ is the order of focused frames
+	FoucusQ []Frame
+)
+
 // ById returns a *Frame if the id matches that of a window or it's associated
 func ById(id xproto.Window) Frame {
 	for _, f := range ManagedFrames {
@@ -20,18 +28,18 @@ func printFrames() {
 	fmt.Printf("%+v", ManagedFrames)
 }
 
-// AddFrame adds the given frame to our managed frames
-func AddFrame(f Frame) {
-	ManagedFrames = append(ManagedFrames, f)
+// AddFrame adds the given frame to the slice of Frames s
+func AddFrame(f Frame, s []Frame) []Frame {
+	return append([]Frame{f}, s...)
 }
 
 // RemoveFrame removes a given frame from the wm list of managed frames
-func RemoveFrame(f Frame) {
-	for i, f2 := range ManagedFrames {
+func RemoveFrame(f Frame, s []Frame) []Frame {
+	for i, f2 := range s {
 		if f2.Id() == f.Id() {
-			ManagedFrames = append(ManagedFrames[:i], ManagedFrames[i+1:]...)
+			s = append(s[:i], s[i+1:]...)
 			break
 		}
 	}
-
+	return s
 }

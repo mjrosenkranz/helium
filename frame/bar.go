@@ -58,18 +58,33 @@ func (f *Frame) AddBar() {
 
 	b.win.Map()
 
-	title, err := ewmh.WmNameGet(X, f.client.Id)
-	if err != nil {
-		log.Println(err)
-		title = "bruh"
-	}
+	f.UpdateBar()
 
 	// add press handlers
 	f.handleBarPress().Connect(X, b.win.Id)
 	f.handleBarRelease().Connect(X, b.win.Id)
 	f.handleBarMotion().Connect(X, b.win.Id)
 
-	b.Draw(title, config.Bar.Focused, config.Bar.UnFocused)
+}
+
+// UpdateBar updates the title of the frames bar
+func (f *Frame) UpdateBar() {
+
+	title, err := ewmh.WmNameGet(X, f.client.Id)
+	if err != nil {
+		log.Println(err)
+		title = ""
+	}
+
+	bg := config.Bar.Focused
+	fg := config.Bar.UnFocused
+
+	if f.state == unfocused {
+		bg = config.Bar.UnFocused
+		fg = config.Bar.Focused
+	}
+
+	f.bar.Draw(title, bg, fg)
 }
 
 // Draw draws the given text to the bar with a background

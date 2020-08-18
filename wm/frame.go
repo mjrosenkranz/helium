@@ -6,4 +6,6 @@ import "github.com/BurntSushi/xgb/xproto"
 type Frame interface {
 	Contains(xproto.Window) bool
 	Id() xproto.Window
+	Focus()
+	Unfocus()
 }

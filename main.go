@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/BurntSushi/xgbutil/mousebind"
+
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/xen0ne/helium/config"
@@ -18,6 +20,7 @@ func main() {
 	}
 	defer X.Conn().Close()
 
+	mousebind.Initialize(X)
 	wm.Setup(X)
 	frame.Setup(X)
 	config.Defaults()
