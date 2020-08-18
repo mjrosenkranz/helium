@@ -52,7 +52,7 @@ func (f *Frame) cdestroyNotify() xevent.DestroyNotifyFun {
 			}
 		}
 
-		flast := wm.FoucusQ[0].Id() == f.Id()
+		flast := wm.FoucusQ[0].FrameId() == f.FrameId()
 		wm.FoucusQ = wm.RemoveFrame(f, wm.FoucusQ)
 
 		if len(wm.FoucusQ) > 0 && flast {
@@ -60,7 +60,7 @@ func (f *Frame) cdestroyNotify() xevent.DestroyNotifyFun {
 		}
 
 		f.bar.Destroy()
-		f.parent.Destroy()
+		f.Destroy()
 		wm.ManagedFrames = wm.RemoveFrame(f, wm.ManagedFrames)
 	}
 	return xevent.DestroyNotifyFun(fn)

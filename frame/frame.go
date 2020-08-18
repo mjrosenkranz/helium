@@ -21,11 +21,12 @@ var (
 
 // A Frame is a window which holds a client and its decorations
 type Frame struct {
-	parent, client *xwindow.Window
-	bar            *Bar
-	state          State
-	x, y, px, py   int
-	tag            int
+	*xwindow.Window
+	client       *xwindow.Window
+	bar          *Bar
+	state        State
+	x, y, px, py int
+	tag          int
 }
 
 // Setup sets up the Frame struct
@@ -59,11 +60,11 @@ func New(c *xwindow.Window) *Frame {
 		log.Printf("Cannot get geometry for %x\n", f.client.Id)
 	}
 
-	f.parent, err = xwindow.Generate(X)
+	f.Window, err = xwindow.Generate(X)
 	if err != nil {
-		log.Printf("Could not create new window for %x\n", f.parent.Id)
+		log.Printf("Could not create new window for %x\n", f.Id)
 	}
-	f.parent.Create(X.RootWin(),
+	f.Create(X.RootWin(),
 		g.X(), g.Y(),
 		g.Width(), g.Height()+config.Bar.Height,
 		xproto.CwBackPixel|xproto.CwEventMask,
@@ -81,7 +82,7 @@ func New(c *xwindow.Window) *Frame {
 	f.Map()
 
 	err = xproto.ReparentWindowChecked(X.Conn(),
-		f.client.Id, f.parent.Id, 0, int16(config.Bar.Height)).Check()
+		f.client.Id, f.Id, 0, int16(config.Bar.Height)).Check()
 	if err != nil {
 		log.Println("Could not reparent window")
 	}
@@ -93,11 +94,16 @@ func New(c *xwindow.Window) *Frame {
 
 // Map maps all the components of a Frame
 func (f *Frame) Map() {
-	f.parent.Map()
+	f.Window.Map()
 	f.client.Map()
 	if f.bar != nil {
 		f.bar.Map()
 	}
+}
+
+// Returns the id of a frame
+func (f *Frame) FrameId() xproto.Window {
+	return f.Id
 }
 
 // String returns a string representation of a Frame
@@ -107,18 +113,18 @@ func (f *Frame) String() string {
 
 // Focus alerts X of the Frame we want to focus and provides input focus
 func (f *Frame) Focus() {
-	err := ewmh.ActiveWindowSet(X, f.parent.Id)
+	err := ewmh.ActiveWindowSet(X, f.Id)
 	if err != nil {
 		log.Printf("Cannot set active window to %s\n", f.String())
 	}
 	f.client.FocusParent(xproto.TimeCurrentTime)
-	f.parent.Stack(xproto.StackModeAbove)
+	f.Stack(xproto.StackModeAbove)
 	f.state = focused
 
 	f.UpdateBar()
 
 	// if there is a previously focued, tell them to unfocus
-	if len(wm.FoucusQ) > 0 && wm.FoucusQ[0].Id() != f.Id() {
+	if len(wm.FoucusQ) > 0 && wm.FoucusQ[0].FrameId() != f.FrameId() {
 		wm.FoucusQ[0].Unfocus()
 	}
 
@@ -135,13 +141,13 @@ func (f *Frame) Unfocus() {
 
 // Contains tells us if the given frame has a window of the given id
 func (f *Frame) Contains(id xproto.Window) bool {
-	return f.parent.Id == id || f.client.Id == id || f.bar.Id == id
+	return f.Id == id || f.client.Id == id || f.bar.Id == id
 }
 
 // Id returns the id of the frame's parent
-func (f *Frame) Id() xproto.Window {
-	return f.parent.Id
-}
+// func (f *Frame) Id() xproto.Window {
+// 	return f.parent.Id
+// }
 
 // Close gracefully kills the client of the current frame
 func (f *Frame) Close() {

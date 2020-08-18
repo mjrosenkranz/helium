@@ -22,10 +22,10 @@ type Bar struct {
 func (f *Frame) AddBar() {
 
 	// we can't add a bar if there is no parent
-	if f.parent == nil {
-		log.Printf("Frame %s does not have a parent\n", f.String())
-		return
-	}
+	// if f.parent == nil {
+	// 	log.Printf("Frame %s does not have a parent\n", f.String())
+	// 	return
+	// }
 
 	if f.bar != nil {
 		log.Printf("Frame %s already has a bar \n", f.String())
@@ -49,7 +49,7 @@ func (f *Frame) AddBar() {
 			xproto.EventMaskButtonMotion)
 
 	// reparent bar
-	err = xproto.ReparentWindowChecked(X.Conn(), b.Id, f.parent.Id, 0, 0).Check()
+	err = xproto.ReparentWindowChecked(X.Conn(), b.Id, f.Id, 0, 0).Check()
 	if err != nil {
 		log.Println("Could not reparent bar")
 	}

@@ -29,7 +29,7 @@ func (f *Frame) addFrameEvents() {
 func (f *Frame) moveDragBegin(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int) (bool, xproto.Cursor) {
 	f.px = rootX
 	f.py = rootY
-	f.parent.Stack(xproto.StackModeAbove)
+	f.Stack(xproto.StackModeAbove)
 	f.Focus()
 	f.state = clicked
 
@@ -49,7 +49,7 @@ func (f *Frame) moveDragStep(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int
 
 		f.x += dx
 		f.y += dy
-		f.parent.Move(f.x, f.y)
+		f.Move(f.x, f.y)
 
 		f.px = rootX
 		f.py = rootY

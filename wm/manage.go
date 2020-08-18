@@ -36,7 +36,7 @@ func AddFrame(f Frame, s []Frame) []Frame {
 // RemoveFrame removes a given frame from the wm list of managed frames
 func RemoveFrame(f Frame, s []Frame) []Frame {
 	for i, f2 := range s {
-		if f2.Id() == f.Id() {
+		if f2.FrameId() == f.FrameId() {
 			s = append(s[:i], s[i+1:]...)
 			break
 		}
