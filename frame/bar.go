@@ -6,10 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/BurntSushi/xgbutil"
-	"github.com/BurntSushi/xgbutil/mousebind"
-	"github.com/BurntSushi/xgbutil/xevent"
-
 	"github.com/BurntSushi/freetype-go/freetype"
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil/ewmh"
@@ -19,9 +15,10 @@ import (
 )
 
 type Bar struct {
-	win *xwindow.Window
+	*xwindow.Window
 }
 
+// AddBar adds a title bar to the given frame
 func (f *Frame) AddBar() {
 
 	// we can't add a bar if there is no parent
@@ -36,15 +33,14 @@ func (f *Frame) AddBar() {
 	}
 
 	b := Bar{}
-
 	g := f.client.Geom
 
 	var err error
-	b.win, err = xwindow.Generate(X)
+	b.Window, err = xwindow.Generate(X)
 	if err != nil {
 		log.Fatalf("Could not create new id %s", err)
 	}
-	b.win.Create(X.RootWin(),
+	b.Create(X.RootWin(),
 		0, 0,
 		g.Width(), config.Bar.Height,
 		xproto.CwBackPixel|xproto.CwEventMask,
@@ -53,30 +49,18 @@ func (f *Frame) AddBar() {
 			xproto.EventMaskButtonMotion)
 
 	// reparent bar
-	err = xproto.ReparentWindowChecked(X.Conn(), b.win.Id, f.parent.Id, 0, 0).Check()
+	err = xproto.ReparentWindowChecked(X.Conn(), b.Id, f.parent.Id, 0, 0).Check()
 	if err != nil {
 		log.Println("Could not reparent bar")
 	}
 
 	f.bar = &b
 
-	b.win.Map()
+	b.Map()
 
 	f.UpdateBar()
 
-	// add drag movement
-	mousebind.Drag(X, f.bar.win.Id, f.bar.win.Id,
-		"1", false,
-		f.moveDragBegin, f.moveDragStep, f.moveDragEnd)
-
-	// add window killing
-	err = mousebind.ButtonReleaseFun(
-		func(xu *xgbutil.XUtil, event xevent.ButtonReleaseEvent) {
-			f.Close()
-		}).Connect(X, f.bar.win.Id, "2", false, false)
-	if err != nil {
-		log.Println(err)
-	}
+	f.addFrameEvents()
 }
 
 // UpdateBar updates the title of the frames bar
@@ -102,12 +86,12 @@ func (f *Frame) UpdateBar() {
 // Draw draws the given text to the bar with a background
 // color of bg and text color of fg
 func (b *Bar) Draw(title string, bg, fg uint32) {
-	g, err := b.win.Geometry()
+	g, err := b.Geometry()
 	if err != nil {
-		log.Printf("Cannot get geometry for %x\n", b.win.Id)
+		log.Printf("Cannot get geometry for %x\n", b.Id)
 	}
 
-	addtext(b.win, title, bg, fg, g.Width(), g.Height())
+	addtext(b.Window, title, bg, fg, g.Width(), g.Height())
 }
 
 // HELPER FUNCTIONS

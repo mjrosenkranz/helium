@@ -86,7 +86,7 @@ func New(c *xwindow.Window) *Frame {
 		log.Println("Could not reparent window")
 	}
 
-	f.manageEvents()
+	f.addClientEvents()
 
 	return &f
 }
@@ -96,7 +96,7 @@ func (f *Frame) Map() {
 	f.parent.Map()
 	f.client.Map()
 	if f.bar != nil {
-		f.bar.win.Map()
+		f.bar.Map()
 	}
 }
 
@@ -135,7 +135,7 @@ func (f *Frame) Unfocus() {
 
 // Contains tells us if the given frame has a window of the given id
 func (f *Frame) Contains(id xproto.Window) bool {
-	return f.parent.Id == id || f.client.Id == id || f.bar.win.Id == id
+	return f.parent.Id == id || f.client.Id == id || f.bar.Id == id
 }
 
 // Id returns the id of the frame's parent
@@ -143,6 +143,7 @@ func (f *Frame) Id() xproto.Window {
 	return f.parent.Id
 }
 
+// Close gracefully kills the client of the current frame
 func (f *Frame) Close() {
 
 	wm_protocols, err := xprop.Atm(X, "WM_PROTOCOLS")
