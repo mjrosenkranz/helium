@@ -65,7 +65,11 @@ func New(c *xwindow.Window) *Frame {
 	f.parent.Create(X.RootWin(),
 		g.X(), g.Y(),
 		g.Width(), g.Height()+config.Bar.Height,
-		xproto.CwBackPixel, 0xffffff)
+		xproto.CwBackPixel|xproto.CwEventMask,
+		config.Bar.Focused, xproto.EventMaskButtonPress|
+			xproto.EventMaskButtonRelease|
+			xproto.EventMaskButtonMotion|
+			xproto.EventMaskSubstructureNotify)
 
 	f.x = g.X()
 	f.y = g.Y()
@@ -103,7 +107,7 @@ func (f *Frame) Focus() {
 	if err != nil {
 		log.Printf("Cannot set active window to %s\n", f.String())
 	}
-	f.client.Focus()
+	f.client.FocusParent(xproto.TimeCurrentTime)
 	f.parent.Stack(xproto.StackModeAbove)
 	f.state = focused
 }

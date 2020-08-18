@@ -1,6 +1,7 @@
 package frame
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/BurntSushi/xgb/xproto"
@@ -10,9 +11,21 @@ import (
 )
 
 func (f *Frame) manageEvents() {
-	f.client.Listen(xproto.EventMaskPropertyChange |
-		xproto.EventMaskStructureNotify)
+	err := f.client.Listen(xproto.EventMaskPropertyChange |
+		xproto.EventMaskStructureNotify | xproto.EventMaskButtonPress)
+
+	if err != nil {
+		log.Println(err)
+	}
 	f.cdestroyNotify().Connect(X, f.client.Id)
+	f.cButtonPress().Connect(X, f.client.Id)
+}
+
+func (f *Frame) cButtonPress() xevent.ButtonPressFun {
+	fn := func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
+		fmt.Println("clicky")
+	}
+	return xevent.ButtonPressFun(fn)
 }
 
 func (f *Frame) cdestroyNotify() xevent.DestroyNotifyFun {
