@@ -8,6 +8,7 @@ import (
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/mousebind"
 	"github.com/BurntSushi/xgbutil/xevent"
+	"github.com/BurntSushi/xgbutil/xprop"
 	"github.com/xen0ne/helium/wm"
 )
 
@@ -19,7 +20,11 @@ func (f *Frame) addClientEvents() {
 		log.Println(err)
 	}
 	// tell us if the client is killed
-	f.cdestroyNotify().Connect(wm.X, f.client.Id)
+	f.cDestroyNotify().Connect(wm.X, f.client.Id)
+	f.cPropertyNotify().Connect(wm.X, f.client.Id)
+	// c.cbMapNotify().Connect(wm.X, c.Id())
+	// c.cbConfigureRequest().Connect(wm.X, c.Id())
+	// c.cbClientMessage().Connect(wm.X, c.Id())
 
 	// add focous on click
 	err = mousebind.ButtonPressFun(
@@ -35,7 +40,33 @@ func (f *Frame) addClientEvents() {
 		f.moveDragBegin, f.moveDragStep, f.moveDragEnd)
 }
 
-func (f *Frame) cdestroyNotify() xevent.DestroyNotifyFun {
+func (f *Frame) cPropertyNotify() xevent.PropertyNotifyFun {
+	fn := func(X *xgbutil.XUtil, ev xevent.PropertyNotifyEvent) {
+		name, err := xprop.AtomName(wm.X, ev.Atom)
+		if err != nil {
+			log.Printf("Could not get property atom name for '%s' because: %s.", ev, err)
+			return
+		}
+		f.handleProperty(name)
+	}
+
+	return xevent.PropertyNotifyFun(fn)
+}
+
+func (f *Frame) handleProperty(p string) {
+	switch p {
+	case "_NET_WM_VISIBLE_NAME":
+		fallthrough
+	case "_NET_WM_NAME":
+		fallthrough
+	case "WM_NAME":
+		f.UpdateBar()
+	default:
+		log.Printf("Dont know how to handle property '%s'\n", p)
+	}
+}
+
+func (f *Frame) cDestroyNotify() xevent.DestroyNotifyFun {
 	fn := func(X *xgbutil.XUtil, ev xevent.DestroyNotifyEvent) {
 		log.Printf("destroy notify for %x\n", ev.Window)
 
