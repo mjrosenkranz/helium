@@ -32,7 +32,7 @@ func (f *Frame) moveDragBegin(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY in
 	f.py = rootY
 	f.Stack(xproto.StackModeAbove)
 	f.Focus()
-	f.state = clicked
+	f.state = dragging
 
 	cur, err := xcursor.CreateCursor(wm.X, xcursor.Gumby)
 	if err != nil {
@@ -44,7 +44,7 @@ func (f *Frame) moveDragBegin(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY in
 }
 
 func (f *Frame) moveDragStep(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int) {
-	if f.state == clicked {
+	if f.state == dragging {
 		dx := rootX - f.px
 		dy := rootY - f.py
 

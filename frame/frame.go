@@ -63,7 +63,7 @@ func New(c *xwindow.Window) *Frame {
 	// need the geometry
 	g, err := f.client.Geometry()
 	if err != nil {
-		log.Printf("Cannot get geometry for %x\n", f.client.Id)
+		log.Printf("Cannot get geometry for %x, bc: %s\n", f.client.Id, err)
 	}
 
 	f.Window, err = xwindow.Generate(wm.X)

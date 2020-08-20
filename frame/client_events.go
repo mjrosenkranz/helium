@@ -22,8 +22,8 @@ func (f *Frame) addClientEvents() {
 	// tell us if the client is killed
 	f.cDestroyNotify().Connect(wm.X, f.client.Id)
 	f.cPropertyNotify().Connect(wm.X, f.client.Id)
+	f.cConfigureRequest().Connect(wm.X, f.client.Id)
 	// c.cbMapNotify().Connect(wm.X, c.Id())
-	// c.cbConfigureRequest().Connect(wm.X, c.Id())
 	// c.cbClientMessage().Connect(wm.X, c.Id())
 
 	// add focous on click
@@ -66,6 +66,20 @@ func (f *Frame) handleProperty(p string) {
 	}
 }
 
+func (f *Frame) cConfigureRequest() xevent.ConfigureRequestFun {
+
+	fn := func(X *xgbutil.XUtil, ev xevent.ConfigureRequestEvent) {
+		// ignore this event if the state requires so
+		if f.state == dragging {
+			return
+		}
+
+		fmt.Println(ev)
+	}
+
+	return xevent.ConfigureRequestFun(fn)
+}
+
 func (f *Frame) cDestroyNotify() xevent.DestroyNotifyFun {
 	fn := func(X *xgbutil.XUtil, ev xevent.DestroyNotifyEvent) {
 		log.Printf("destroy notify for %x\n", ev.Window)
@@ -81,6 +95,12 @@ func (f *Frame) cDestroyNotify() xevent.DestroyNotifyFun {
 					xevent.DequeueAt(X, i)
 				}
 			}
+			if pn, ok := ee.Event.(xproto.PropertyNotifyEvent); ok {
+				if pn.Window == ev.Window {
+					log.Printf("skipping property notify for dying window %x\n", ev.Window)
+					xevent.DequeueAt(X, i)
+				}
+			}
 		}
 
 		flast := wm.FoucusQ[0].FrameId() == f.FrameId()
@@ -90,9 +110,12 @@ func (f *Frame) cDestroyNotify() xevent.DestroyNotifyFun {
 			wm.FoucusQ[0].Focus()
 		}
 
+		wm.ManagedFrames = wm.RemoveFrame(f, wm.ManagedFrames)
+
+		f.client.Detach()
+		f.bar.Detach()
 		f.bar.Destroy()
 		f.Destroy()
-		wm.ManagedFrames = wm.RemoveFrame(f, wm.ManagedFrames)
 	}
 	return xevent.DestroyNotifyFun(fn)
 }

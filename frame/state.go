@@ -6,5 +6,5 @@ const (
 	none State = iota
 	focused
 	unfocused
-	clicked
+	dragging
 )

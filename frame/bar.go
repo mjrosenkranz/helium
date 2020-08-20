@@ -89,7 +89,8 @@ func (f *Frame) UpdateBar() {
 func (b *Bar) Draw(title string, bg, fg uint32) {
 	g, err := b.Geometry()
 	if err != nil {
-		log.Printf("Cannot get geometry for %x\n", b.Id)
+		log.Printf("Cannot get geometry for bar %x, bc: %s\n", b.Id, err)
+		return
 	}
 
 	addtext(b.Window, title, bg, fg, g.Width(), g.Height())
@@ -138,7 +139,9 @@ func addtext(bar *xwindow.Window, text string, bg, fg uint32, w, h int) {
 		if ew < (w - (2 * config.Bar.TextOffset)) {
 			break
 		}
-		runes = runes[:len(runes)-1]
+		if len(runes) > 0 {
+			runes = runes[:len(runes)-1]
+		}
 	}
 
 	x := config.Bar.TextOffset
