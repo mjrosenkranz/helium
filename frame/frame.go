@@ -37,6 +37,22 @@ func New(c *xwindow.Window) *Frame {
 	} else {
 		if attrs.OverrideRedirect {
 			log.Printf("Not managing override redirect window %x", c.Id)
+			c.Map()
+			return nil
+		}
+	}
+
+	// make sure this is the kind of window we want to manage
+	wtype, err := ewmh.WmWindowTypeGet(wm.X, c.Id)
+	if err != nil {
+		log.Println(err)
+	}
+	for _, t := range wtype {
+		if t == "_NET_WM_WINDOW_TYPE_TOOLBAR" ||
+			t == "_NET_WM_WINDOW_TYPE_DOCK" ||
+			t == "_NET_WM_WINDOW_TYPE_DESKTOP" {
+			log.Printf("Not managing window of type: %s\n", t)
+			c.Map()
 			return nil
 		}
 	}

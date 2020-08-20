@@ -13,6 +13,9 @@ Basic window management:
 	- add/remove window from tag
 	- toggle individual tags
 	- hide/show all tags except for selected
+ - Monitors
+	- One tag across multiple or one instance of tag monitor
+	  - tag 0 can be across both
 
 Goodies:
  - Tabbing
