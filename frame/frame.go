@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/BurntSushi/xgbutil"
 	"github.com/xen0ne/helium/config"
 	"github.com/xen0ne/helium/wm"
 
@@ -13,10 +12,6 @@ import (
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/xprop"
 	"github.com/BurntSushi/xgbutil/xwindow"
-)
-
-var (
-	X *xgbutil.XUtil
 )
 
 // A Frame is a window which holds a client and its decorations
@@ -29,18 +24,13 @@ type Frame struct {
 	tag          int
 }
 
-// Setup sets up the Frame struct
-func Setup(x *xgbutil.XUtil) {
-	X = x
-}
-
 // New creates a new client from a map event
 func New(c *xwindow.Window) *Frame {
-	X.Grab()
-	defer X.Ungrab()
+	wm.X.Grab()
+	defer wm.X.Ungrab()
 
 	// If this is an override redirect, skip...
-	attrs, err := xproto.GetWindowAttributes(X.Conn(), c.Id).Reply()
+	attrs, err := xproto.GetWindowAttributes(wm.X.Conn(), c.Id).Reply()
 	if err != nil {
 		log.Printf("Could not get window attributes for '%x': %s",
 			c.Id, err)
@@ -60,11 +50,11 @@ func New(c *xwindow.Window) *Frame {
 		log.Printf("Cannot get geometry for %x\n", f.client.Id)
 	}
 
-	f.Window, err = xwindow.Generate(X)
+	f.Window, err = xwindow.Generate(wm.X)
 	if err != nil {
 		log.Printf("Could not create new window for %x\n", f.Id)
 	}
-	f.Create(X.RootWin(),
+	f.Create(wm.X.RootWin(),
 		g.X(), g.Y(),
 		g.Width(), g.Height()+config.Bar.Height,
 		xproto.CwBackPixel|xproto.CwEventMask,
@@ -81,7 +71,7 @@ func New(c *xwindow.Window) *Frame {
 
 	f.Map()
 
-	err = xproto.ReparentWindowChecked(X.Conn(),
+	err = xproto.ReparentWindowChecked(wm.X.Conn(),
 		f.client.Id, f.Id, 0, int16(config.Bar.Height)).Check()
 	if err != nil {
 		log.Println("Could not reparent window")
@@ -113,7 +103,7 @@ func (f *Frame) String() string {
 
 // Focus alerts X of the Frame we want to focus and provides input focus
 func (f *Frame) Focus() {
-	err := ewmh.ActiveWindowSet(X, f.Id)
+	err := ewmh.ActiveWindowSet(wm.X, f.Id)
 	if err != nil {
 		log.Printf("Cannot set active window to %s\n", f.String())
 	}
@@ -152,13 +142,13 @@ func (f *Frame) Contains(id xproto.Window) bool {
 // Close gracefully kills the client of the current frame
 func (f *Frame) Close() {
 
-	wm_protocols, err := xprop.Atm(X, "WM_PROTOCOLS")
+	wm_protocols, err := xprop.Atm(wm.X, "WM_PROTOCOLS")
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	wm_del_win, err := xprop.Atm(X, "WM_DELETE_WINDOW")
+	wm_del_win, err := xprop.Atm(wm.X, "WM_DELETE_WINDOW")
 	if err != nil {
 		log.Println(err)
 		return

@@ -8,11 +8,12 @@ import (
 	"github.com/BurntSushi/xgbutil/mousebind"
 	"github.com/BurntSushi/xgbutil/xcursor"
 	"github.com/BurntSushi/xgbutil/xevent"
+	"github.com/xen0ne/helium/wm"
 )
 
 func (f *Frame) addFrameEvents() {
 	// add drag movement
-	mousebind.Drag(X, f.bar.Id, f.bar.Id,
+	mousebind.Drag(wm.X, f.bar.Id, f.bar.Id,
 		"1", false,
 		f.moveDragBegin, f.moveDragStep, f.moveDragEnd)
 
@@ -20,7 +21,7 @@ func (f *Frame) addFrameEvents() {
 	err := mousebind.ButtonReleaseFun(
 		func(xu *xgbutil.XUtil, event xevent.ButtonReleaseEvent) {
 			f.Close()
-		}).Connect(X, f.bar.Id, "2", false, false)
+		}).Connect(wm.X, f.bar.Id, "2", false, false)
 	if err != nil {
 		log.Println(err)
 	}
@@ -33,7 +34,7 @@ func (f *Frame) moveDragBegin(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY in
 	f.Focus()
 	f.state = clicked
 
-	cur, err := xcursor.CreateCursor(X, xcursor.Gumby)
+	cur, err := xcursor.CreateCursor(wm.X, xcursor.Gumby)
 	if err != nil {
 		log.Println(err)
 		return false, 0

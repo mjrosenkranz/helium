@@ -12,6 +12,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/xen0ne/helium/config"
+	"github.com/xen0ne/helium/wm"
 )
 
 type Bar struct {
@@ -36,11 +37,11 @@ func (f *Frame) AddBar() {
 	g := f.client.Geom
 
 	var err error
-	b.Window, err = xwindow.Generate(X)
+	b.Window, err = xwindow.Generate(wm.X)
 	if err != nil {
 		log.Fatalf("Could not create new id %s", err)
 	}
-	b.Create(X.RootWin(),
+	b.Create(wm.X.RootWin(),
 		0, 0,
 		g.Width(), config.Bar.Height,
 		xproto.CwBackPixel|xproto.CwEventMask,
@@ -49,7 +50,7 @@ func (f *Frame) AddBar() {
 			xproto.EventMaskButtonMotion)
 
 	// reparent bar
-	err = xproto.ReparentWindowChecked(X.Conn(), b.Id, f.Id, 0, 0).Check()
+	err = xproto.ReparentWindowChecked(wm.X.Conn(), b.Id, f.Id, 0, 0).Check()
 	if err != nil {
 		log.Println("Could not reparent bar")
 	}
@@ -66,7 +67,7 @@ func (f *Frame) AddBar() {
 // UpdateBar updates the title of the frames bar
 func (f *Frame) UpdateBar() {
 
-	title, err := ewmh.WmNameGet(X, f.client.Id)
+	title, err := ewmh.WmNameGet(wm.X, f.client.Id)
 	if err != nil {
 		log.Println(err)
 		title = ""
@@ -98,7 +99,7 @@ func (b *Bar) Draw(title string, bg, fg uint32) {
 
 func addtext(bar *xwindow.Window, text string, bg, fg uint32, w, h int) {
 	// Create an image using the over estimated extents.
-	img := xgraphics.New(bar.X, image.Rect(0, 0, w, h))
+	img := xgraphics.New(wm.X, image.Rect(0, 0, w, h))
 	xgraphics.BlendBgColor(img, IntToColor(bg))
 	// open ttf
 	bs, err := ioutil.ReadFile(config.Bar.FontPath)

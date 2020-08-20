@@ -19,19 +19,19 @@ func (f *Frame) addClientEvents() {
 		log.Println(err)
 	}
 	// tell us if the client is killed
-	f.cdestroyNotify().Connect(X, f.client.Id)
+	f.cdestroyNotify().Connect(wm.X, f.client.Id)
 
 	// add focous on click
 	err = mousebind.ButtonPressFun(
 		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
 			xproto.AllowEvents(X.Conn(), xproto.AllowReplayPointer, 0)
 			f.Focus()
-		}).Connect(X, f.client.Id, "1", false, true)
+		}).Connect(wm.X, f.client.Id, "1", false, true)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	mousebind.Drag(X, f.client.Id, f.client.Id, "Mod1-1", true,
+	mousebind.Drag(wm.X, f.client.Id, f.client.Id, "Mod1-1", true,
 		f.moveDragBegin, f.moveDragStep, f.moveDragEnd)
 }
 
