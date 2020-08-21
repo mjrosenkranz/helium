@@ -9,6 +9,7 @@ import (
 
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil/ewmh"
+	"github.com/BurntSushi/xgbutil/icccm"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/xprop"
 	"github.com/BurntSushi/xgbutil/xwindow"
@@ -17,11 +18,13 @@ import (
 // A Frame is a window which holds a client and its decorations
 type Frame struct {
 	*xwindow.Window
-	client       *xwindow.Window
-	bar          *Bar
-	state        State
-	x, y, px, py int
-	tag          int
+	client     *xwindow.Window
+	bar        *Bar
+	state      State
+	x, y, w, h int
+	px, py     int
+	resizedir  Direction
+	tag        int
 }
 
 // New creates a new client from a map event
@@ -66,21 +69,55 @@ func New(c *xwindow.Window) *Frame {
 		log.Printf("Cannot get geometry for %x, bc: %s\n", f.client.Id, err)
 	}
 
+	x := g.X()
+	y := g.Y()
+	w := g.Width()
+	h := g.Height()
+
+	if x < 0 {
+		x = 0
+	}
+	if y < 0 {
+		y = 0
+	}
+
+	// get the normal hints
+	nh, err := icccm.WmNormalHintsGet(wm.X, c.Id)
+	if err != nil {
+		log.Printf("Could not get normal hints because %s\n", err)
+	} else {
+		fmt.Printf("hints: %+v\n", nh)
+		if nh.Flags&icccm.SizeHintPMinSize > 0 {
+			bw := int(nh.MinWidth)
+			bh := int(nh.MinHeight)
+			if bw > w {
+				w = bw
+			}
+			if bh > h {
+				h = bh
+			}
+		}
+	}
+
+	f.client.Resize(w, h)
+
+	f.x = x
+	f.y = y
+	f.w = w
+	f.h = h + config.Bar.Height
+
 	f.Window, err = xwindow.Generate(wm.X)
 	if err != nil {
 		log.Printf("Could not create new window for %x\n", f.Id)
 	}
 	f.Create(wm.X.RootWin(),
-		g.X(), g.Y(),
-		g.Width(), g.Height()+config.Bar.Height,
+		f.x, f.y,
+		f.w, f.h,
 		xproto.CwBackPixel|xproto.CwEventMask,
 		config.Bar.Focused, xproto.EventMaskButtonPress|
 			xproto.EventMaskButtonRelease|
 			xproto.EventMaskButtonMotion|
 			xproto.EventMaskSubstructureNotify)
-
-	f.x = g.X()
-	f.y = g.Y()
 
 	// set the tag to initial
 	f.tag = 0
@@ -107,7 +144,7 @@ func (f *Frame) Map() {
 	}
 }
 
-// Returns the id of a frame
+// FrameId returns the id of a frame
 func (f *Frame) FrameId() xproto.Window {
 	return f.Id
 }
@@ -125,7 +162,7 @@ func (f *Frame) Focus() {
 	}
 	f.client.FocusParent(xproto.TimeCurrentTime)
 	f.Stack(xproto.StackModeAbove)
-	f.state = focused
+	f.state = focusedState
 
 	f.UpdateBar()
 
@@ -141,7 +178,7 @@ func (f *Frame) Focus() {
 }
 
 func (f *Frame) Unfocus() {
-	f.state = unfocused
+	f.state = unfocusedState
 	f.UpdateBar()
 }
 
@@ -183,4 +220,37 @@ func (f *Frame) Close() {
 		log.Printf("Could not send WM_DELETE_WINDOW "+
 			"ClientMessage because: %s", err)
 	}
+}
+
+// Resize resizes the frame to the given width and height
+func (f *Frame) Resize(w, h int) {
+	f.w = w
+	f.h = h
+	f.Window.Resize(w, h)
+	f.bar.Resize(w, config.Bar.Height)
+	f.client.Resize(w, h-config.Bar.Height)
+}
+
+// ResizeRel resizes the frame to the given width and height
+func (f *Frame) ResizeRel(dw, dh int, dir Direction) {
+
+	switch f.resizedir {
+	case northDir:
+		f.y += dh
+		f.h -= dh
+	case southDir:
+		f.h += dh
+	case eastDir:
+		f.w += dw
+	case westDir:
+		f.x += dw
+		f.w -= dw
+	default:
+		f.Resize(f.w+dw, f.h+dw)
+		return
+	}
+
+	f.MoveResize(f.x, f.y, f.w, f.h)
+	f.bar.Resize(f.w, config.Bar.Height)
+	f.client.Resize(f.w, f.h-config.Bar.Height)
 }

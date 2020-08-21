@@ -1,7 +1,9 @@
 package frame
 
 import (
+	"fmt"
 	"log"
+	"math"
 
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
@@ -32,7 +34,7 @@ func (f *Frame) moveDragBegin(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY in
 	f.py = rootY
 	f.Stack(xproto.StackModeAbove)
 	f.Focus()
-	f.state = dragging
+	f.state = movingState
 
 	cur, err := xcursor.CreateCursor(wm.X, xcursor.Gumby)
 	if err != nil {
@@ -44,7 +46,7 @@ func (f *Frame) moveDragBegin(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY in
 }
 
 func (f *Frame) moveDragStep(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int) {
-	if f.state == dragging {
+	if f.state == movingState {
 		dx := rootX - f.px
 		dy := rootY - f.py
 
@@ -58,6 +60,65 @@ func (f *Frame) moveDragStep(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int
 }
 
 func (f *Frame) moveDragEnd(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int) {
-	f.state = focused
+	f.state = focusedState
+	f.Focus()
+}
+
+func (f *Frame) resizeDragBegin(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int) (bool, xproto.Cursor) {
+	f.px = rootX
+	f.py = rootY
+	f.Stack(xproto.StackModeAbove)
+	f.Focus()
+	f.state = resizingState
+
+	// set the drag direction by which edge is closest
+	f.resizedir = f.dirFromPoint(eventX, eventY, f.w, f.h)
+
+	fmt.Printf("direction %d\n", f.resizedir)
+
+	cur, err := xcursor.CreateCursor(wm.X, xcursor.Gumby)
+	if err != nil {
+		log.Println(err)
+		return false, 0
+	}
+
+	return true, cur
+}
+
+func (f *Frame) dirFromPoint(x, y, w, h int) Direction {
+	m := map[Direction]int{
+		northDir: y,
+		southDir: h - y,
+		eastDir:  w - x,
+		westDir:  x,
+	}
+	min := math.Inf(1)
+	ret := noDir
+
+	for k, v := range m {
+		if float64(v) < min {
+			min = float64(v)
+			ret = k
+		}
+	}
+
+	return ret
+}
+
+func (f *Frame) resizeDragStep(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int) {
+	if f.state == resizingState {
+		dx := rootX - f.px
+		dy := rootY - f.py
+
+		f.ResizeRel(dx, dy, f.resizedir)
+
+		f.px = rootX
+		f.py = rootY
+	}
+}
+
+func (f *Frame) resizeDragEnd(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int) {
+	f.state = focusedState
+	f.resizedir = noDir
 	f.Focus()
 }

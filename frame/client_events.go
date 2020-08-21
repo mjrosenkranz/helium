@@ -38,6 +38,9 @@ func (f *Frame) addClientEvents() {
 
 	mousebind.Drag(wm.X, f.client.Id, f.client.Id, "Mod1-1", true,
 		f.moveDragBegin, f.moveDragStep, f.moveDragEnd)
+
+	mousebind.Drag(wm.X, f.client.Id, f.client.Id, "Control-1", true,
+		f.resizeDragBegin, f.resizeDragStep, f.resizeDragEnd)
 }
 
 func (f *Frame) cPropertyNotify() xevent.PropertyNotifyFun {
@@ -70,7 +73,7 @@ func (f *Frame) cConfigureRequest() xevent.ConfigureRequestFun {
 
 	fn := func(X *xgbutil.XUtil, ev xevent.ConfigureRequestEvent) {
 		// ignore this event if the state requires so
-		if f.state == dragging {
+		if f.state == movingState || f.state == resizingState {
 			return
 		}
 

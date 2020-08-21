@@ -76,7 +76,7 @@ func (f *Frame) UpdateBar() {
 	bg := config.Bar.Focused
 	fg := config.Bar.UnFocused
 
-	if f.state == unfocused {
+	if f.state == unfocusedState {
 		bg = config.Bar.UnFocused
 		fg = config.Bar.Focused
 	}
