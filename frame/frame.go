@@ -162,9 +162,10 @@ func (f *Frame) Focus() {
 	if err != nil {
 		log.Printf("Cannot set active window to %s\n", f.String())
 	}
-	f.client.Focus()
 	f.Stack(xproto.StackModeAbove)
 	f.state = focusedState
+
+	f.client.Focus()
 
 	f.UpdateBar()
 

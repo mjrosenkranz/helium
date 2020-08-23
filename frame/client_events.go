@@ -30,7 +30,10 @@ func (f *Frame) addClientEvents() {
 	err = mousebind.ButtonPressFun(
 		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
 			xproto.AllowEvents(X.Conn(), xproto.AllowReplayPointer, 0)
-			f.Focus()
+			// only focus if not already
+			if f.state != focusedState {
+				f.Focus()
+			}
 		}).Connect(wm.X, f.client.Id, "1", true, true)
 	if err != nil {
 		fmt.Println(err)

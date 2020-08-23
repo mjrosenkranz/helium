@@ -1,22 +1,26 @@
 Basic window management:
- - Map window
-	- reparent
-	- decorate frame
-	- write title
- - Movement
-	- snap to grid
- - Focus
-	- update colors
-	- prev/next
-	- cardinal directions
- - Tags
-	- add/remove window from tag
-	- toggle individual tags
-	- hide/show all tags except for selected
- - Monitors
-	- One tag across multiple or one instance of tag monitor
-	  - tag 0 can be across both
+[ ] Map window
+    [x] reparent
+    [x] decorate frame
+    [x] write title
+    [ ] add border
+[ ] Movement
+    [ ] snap to grid
+    [ ] move in cardinal directions
+[ ] Focus
+    [x] update colors
+    [ ] prev/next
+    [ ] cardinal directions
+[ ] Tags
+    [ ] 0 is tagless
+    [ ] add/remove window from tag
+    [ ] toggle individual tags
+    [ ] hide/show all tags except for selected
+[ ] Monitors
+    [ ] update on changes
+    [ ] one instace of each tag (switches based on focused monitor)
+
 
 Goodies:
- - Tabbing
- - Rounded corners
+ [ ] Tabbing
+ [ ] Rounded corners
