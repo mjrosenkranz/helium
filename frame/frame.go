@@ -41,6 +41,7 @@ func New(c *xwindow.Window) *Frame {
 		if attrs.OverrideRedirect {
 			log.Printf("Not managing override redirect window %x", c.Id)
 			c.Map()
+			c.Stack(xproto.StackModeAbove)
 			return nil
 		}
 	}
@@ -59,6 +60,7 @@ func New(c *xwindow.Window) *Frame {
 			return nil
 		}
 	}
+	// check if window is a submenu
 
 	f := Frame{}
 	f.client = c
@@ -156,11 +158,11 @@ func (f *Frame) String() string {
 
 // Focus alerts X of the Frame we want to focus and provides input focus
 func (f *Frame) Focus() {
-	err := ewmh.ActiveWindowSet(wm.X, f.Id)
+	err := ewmh.ActiveWindowSet(wm.X, f.client.Id)
 	if err != nil {
 		log.Printf("Cannot set active window to %s\n", f.String())
 	}
-	f.client.FocusParent(xproto.TimeCurrentTime)
+	f.client.Focus()
 	f.Stack(xproto.StackModeAbove)
 	f.state = focusedState
 

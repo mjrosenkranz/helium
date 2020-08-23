@@ -31,7 +31,7 @@ func (f *Frame) addClientEvents() {
 		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
 			xproto.AllowEvents(X.Conn(), xproto.AllowReplayPointer, 0)
 			f.Focus()
-		}).Connect(wm.X, f.client.Id, "1", false, true)
+		}).Connect(wm.X, f.client.Id, "1", true, true)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -65,7 +65,8 @@ func (f *Frame) handleProperty(p string) {
 	case "WM_NAME":
 		f.UpdateBar()
 	default:
-		log.Printf("Dont know how to handle property '%s'\n", p)
+		// log.Printf("Dont know how to handle property '%s'\n", p)
+		return
 	}
 }
 
