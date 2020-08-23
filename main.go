@@ -3,16 +3,25 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"strings"
 
 	"github.com/BurntSushi/xgbutil/mousebind"
 
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/xen0ne/helium/config"
+	"github.com/xen0ne/helium/ipc"
 	"github.com/xen0ne/helium/wm"
 )
 
 func main() {
+	if len(os.Args) > 1 {
+		msg := strings.Join(os.Args[1:], " ")
+		ipc.SendMsg(msg)
+		return
+	}
+
 	X, err := xgbutil.NewConn()
 	if err != nil {
 		log.Fatal(err)
@@ -23,6 +32,8 @@ func main() {
 	wm.Setup(X)
 	config.Defaults()
 	AddHandlers()
+
+	go ipc.RecieveMsg()
 
 	// start event loop
 	pingBefore, pingAfter, pingQuit := xevent.MainPing(X)

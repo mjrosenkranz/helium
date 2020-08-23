@@ -61,6 +61,12 @@ func New(c *xwindow.Window) *Frame {
 		}
 	}
 	// check if window is a submenu
+	t, err := icccm.WmTransientForGet(wm.X, c.Id)
+	if err != nil {
+		log.Printf("Could not get transient because: %s\n", err)
+	} else {
+		log.Printf("%+v\n", t)
+	}
 
 	f := Frame{}
 	f.client = c
@@ -88,7 +94,6 @@ func New(c *xwindow.Window) *Frame {
 	if err != nil {
 		log.Printf("Could not get normal hints because %s\n", err)
 	} else {
-		fmt.Printf("hints: %+v\n", nh)
 		if nh.Flags&icccm.SizeHintPMinSize > 0 {
 			bw := int(nh.MinWidth)
 			bh := int(nh.MinHeight)
