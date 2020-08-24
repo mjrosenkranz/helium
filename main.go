@@ -17,8 +17,8 @@ import (
 
 func main() {
 	if len(os.Args) > 1 {
-		msg := strings.Join(os.Args[1:], " ")
-		ipc.SendMsg(msg)
+		m := strings.Join(os.Args[1:], " ")
+		ipc.CtrlMsg(m)
 		return
 	}
 
@@ -33,7 +33,9 @@ func main() {
 	config.Defaults()
 	AddHandlers()
 
-	go ipc.RecieveMsg()
+	msgch := make(chan ipc.IpcMsg)
+
+	go ipc.RecieveMsg(msgch)
 
 	// start event loop
 	pingBefore, pingAfter, pingQuit := xevent.MainPing(X)
@@ -42,8 +44,12 @@ func main() {
 		case <-pingBefore:
 			// Wait for the event to finish processing.
 			<-pingAfter
-		// case otherVal := <-otherChan:
-		// fmt.Printf("Processing other event: %d\n", otherVal)
+		case msg := <-msgch:
+			fmt.Printf("Recievd msg: %s\n", msg.Msg)
+			msg.Msg = "asfd"
+			ipc.Send(msg)
+			msg.Msg = ipc.EOM
+			ipc.Send(msg)
 		case <-pingQuit:
 			fmt.Printf("xevent loop has quit")
 			return
