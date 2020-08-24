@@ -203,6 +203,8 @@ func (f *Frame) Contains(id xproto.Window) bool {
 // Close gracefully kills the client of the current frame
 func (f *Frame) Close() {
 
+	fmt.Println("Closing")
+
 	wm_protocols, err := xprop.Atm(wm.X, "WM_PROTOCOLS")
 	if err != nil {
 		log.Println(err)

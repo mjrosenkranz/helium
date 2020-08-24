@@ -45,3 +45,10 @@ func RemoveFrame(f Frame, s []Frame) []Frame {
 	// fmt.Printf("Just removed frame: %+v\n", ret)
 	return ret
 }
+
+func GetFocused() Frame {
+	if len(FoucusQ) == 0 {
+		return nil
+	}
+	return FoucusQ[0]
+}

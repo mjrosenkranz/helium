@@ -33,7 +33,7 @@ func main() {
 	config.Defaults()
 	AddHandlers()
 
-	msgch := make(chan ipc.IpcMsg)
+	msgch := make(chan ipc.Msg)
 
 	go ipc.RecieveMsg(msgch)
 
@@ -45,11 +45,8 @@ func main() {
 			// Wait for the event to finish processing.
 			<-pingAfter
 		case msg := <-msgch:
-			fmt.Printf("Recievd msg: %s\n", msg.Msg)
-			msg.Msg = "asfd"
-			ipc.Send(msg)
-			msg.Msg = ipc.EOM
-			ipc.Send(msg)
+			fmt.Printf("Recievd msg: %s\n", msg.Str)
+			ipc.Send(wm.HandleIpcMsg(msg))
 		case <-pingQuit:
 			fmt.Printf("xevent loop has quit")
 			return

@@ -14,10 +14,15 @@ const (
 	EOM      = "EOM"
 )
 
-// IpcMsg is wrapper for a ipc message to sent to event handlers
-type IpcMsg struct {
+// Msg is wrapper for a ipc message to sent to event handlers
+type Msg struct {
 	Conn net.Conn
-	Msg  string
+	Str  string
+}
+
+// NewIpcMsg returns a new IpcMsg from the given connection and string
+func NewIpcMsg(c net.Conn, s string) Msg {
+	return Msg{c, s + EOM}
 }
 
 // CtrlMsg sends a message from the ipc client to the windowmanager
@@ -28,7 +33,7 @@ func CtrlMsg(m string) {
 	}
 	defer conn.Close()
 
-	msg := IpcMsg{conn, m}
+	msg := Msg{conn, m}
 	Send(msg)
 
 	for {
@@ -51,7 +56,7 @@ func CtrlMsg(m string) {
 }
 
 // RecieveMsg sends messages read in a gorutine to the main wm process
-func RecieveMsg(msgch chan IpcMsg) {
+func RecieveMsg(msgch chan Msg) {
 	os.Remove(SOCKPATH)
 
 	// open socket
@@ -74,14 +79,14 @@ func RecieveMsg(msgch chan IpcMsg) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		msgch <- IpcMsg{c, string(msg)}
+		msgch <- Msg{c, strings.Trim(string(msg), "\x00")}
 	}
 }
 
-func Send(msg IpcMsg) {
+func Send(msg Msg) {
 	// b := []byte(msg.Msg)
 	// b = append(b, make([]byte, MSGLEN-len(b))...)
-	_, err := msg.Conn.Write([]byte(msg.Msg))
+	_, err := msg.Conn.Write([]byte(msg.Str))
 	if err != nil {
 		log.Printf("Could not write back to socket because %s\n", err)
 	}

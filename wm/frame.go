@@ -8,4 +8,5 @@ type Frame interface {
 	FrameId() xproto.Window
 	Focus()
 	Unfocus()
+	Close()
 }
