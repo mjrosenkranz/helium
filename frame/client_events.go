@@ -110,14 +110,20 @@ func (f *Frame) cDestroyNotify() xevent.DestroyNotifyFun {
 			}
 		}
 
-		flast := wm.FoucusQ[0].FrameId() == f.FrameId()
-		wm.FoucusQ = wm.RemoveFrame(f, wm.FoucusQ)
+		if wm.GetFocused() == nil {
+			log.Println("focusqueue is empty")
+		} else {
 
-		if len(wm.FoucusQ) > 0 && flast {
-			wm.FoucusQ[0].Focus()
+			wasLast := wm.GetFocused().FrameId() == f.FrameId()
+			wm.FoucusQ = wm.RemoveFrame(f, wm.FoucusQ)
+
+			fnext := wm.GetFocused()
+			if fnext != nil && wasLast {
+				fnext.Focus()
+				log.Println("focusing next window")
+			}
+			wm.ManagedFrames = wm.RemoveFrame(f, wm.ManagedFrames)
 		}
-
-		wm.ManagedFrames = wm.RemoveFrame(f, wm.ManagedFrames)
 
 		f.client.Detach()
 		f.bar.Detach()
