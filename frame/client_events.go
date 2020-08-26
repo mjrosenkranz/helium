@@ -91,6 +91,11 @@ func (f *Frame) cDestroyNotify() xevent.DestroyNotifyFun {
 	fn := func(X *xgbutil.XUtil, ev xevent.DestroyNotifyEvent) {
 		log.Printf("destroy notify for %x\n", ev.Window)
 
+		f.client.Detach()
+		f.bar.Detach()
+		f.bar.Destroy()
+		f.Destroy()
+
 		// get the last destroy notify
 		X.Sync()
 		xevent.Read(X, false)
@@ -110,25 +115,21 @@ func (f *Frame) cDestroyNotify() xevent.DestroyNotifyFun {
 			}
 		}
 
-		if wm.GetFocused() == nil {
-			log.Println("focusqueue is empty")
-		} else {
+		// if wm.GetFocused() == nil {
+		// 	log.Println("focusqueue is empty")
+		// } else {
 
-			wasLast := wm.GetFocused().FrameId() == f.FrameId()
-			wm.FoucusQ = wm.RemoveFrame(f, wm.FoucusQ)
+		// }
 
-			fnext := wm.GetFocused()
-			if fnext != nil && wasLast {
-				fnext.Focus()
-				log.Println("focusing next window")
-			}
-			wm.ManagedFrames = wm.RemoveFrame(f, wm.ManagedFrames)
+		wasLast := wm.IsFocused(f)
+		wm.FocusQ = wm.RemoveFrame(f, wm.FocusQ)
+
+		fnext := wm.GetFocused()
+		if fnext != nil && wasLast {
+			fnext.Focus()
+			log.Println("focusing next window")
 		}
-
-		f.client.Detach()
-		f.bar.Detach()
-		f.bar.Destroy()
-		f.Destroy()
+		wm.ManagedFrames = wm.RemoveFrame(f, wm.ManagedFrames)
 	}
 	return xevent.DestroyNotifyFun(fn)
 }

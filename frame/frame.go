@@ -175,16 +175,17 @@ func (f *Frame) Focus() {
 	f.UpdateBar()
 
 	// if there is a previously focued, tell them to unfocus
-	if len(wm.FoucusQ) > 0 && wm.FoucusQ[0].FrameId() != f.FrameId() {
-		wm.FoucusQ[0].Unfocus()
+	if wm.GetFocused() != nil && !wm.IsFocused(f) {
+		wm.GetFocused().Unfocus()
 	}
 
 	// remove from focus queue
-	wm.FoucusQ = wm.RemoveFrame(f, wm.FoucusQ)
+	wm.FocusQ = wm.RemoveFrame(f, wm.FocusQ)
 	// add to focus queue
-	wm.FoucusQ = wm.AddFrame(f, wm.FoucusQ)
+	wm.FocusQ = wm.AddFrame(f, wm.FocusQ)
 }
 
+// Unfocus updates the state and the bar of the Frame
 func (f *Frame) Unfocus() {
 	f.state = unfocusedState
 	f.UpdateBar()
@@ -194,11 +195,6 @@ func (f *Frame) Unfocus() {
 func (f *Frame) Contains(id xproto.Window) bool {
 	return f.Id == id || f.client.Id == id || f.bar.Id == id
 }
-
-// Id returns the id of the frame's parent
-// func (f *Frame) Id() xproto.Window {
-// 	return f.parent.Id
-// }
 
 // Close gracefully kills the client of the current frame
 func (f *Frame) Close() {
