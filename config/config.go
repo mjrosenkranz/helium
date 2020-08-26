@@ -1,5 +1,13 @@
 package config
 
+import (
+	"io/ioutil"
+	"log"
+
+	"github.com/BurntSushi/freetype-go/freetype"
+	"github.com/BurntSushi/freetype-go/freetype/truetype"
+)
+
 var (
 	// Bar contans all config items related to window title decorations
 	Bar struct {
@@ -16,7 +24,10 @@ var (
 		// Path of the font to be used for the title bar
 		FontPath string
 		// Name of the bar font, it will replace the font path when I can figure that stuff out
-		Font string
+		FontName string
+		FontSize float64
+
+		Font *truetype.Font
 	}
 
 	// Border contains all config items related to window borders
@@ -31,17 +42,33 @@ var (
 // Defaults sets all the config variables to their default values
 func Defaults() {
 	// set defaults
-	Bar.Focused = 0x007d9c
-	Bar.Unfocused = 0xe0ebf5
+	Bar.Focused = 0xe0ebf5
+	Bar.Unfocused = 0xffffdd
 	Bar.TextFocused = 0x000000
 	Bar.TextUnfocused = 0x000000
-	Bar.Height = 20
+	Bar.Height = 0
 	Bar.CenterText = true
 	Bar.TextOffset = 5
 	Bar.FontPath = "./extra/DejaVuSans.ttf"
-	Bar.Font = "DejaVuSans"
+	Bar.FontName = "DejaVuSans"
+	Bar.FontSize = 12.0
+	Bar.Font = openFont()
 
-	Border.Focused = 0xffffdd
+	Border.Focused = 0x007d9c
 	Border.Unfocused = 0xddffff
 	Border.Width = 0
+}
+
+func openFont() *truetype.Font {
+	// open ttf
+	bs, err := ioutil.ReadFile(Bar.FontPath)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	font, err := freetype.ParseFont(bs)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return font
 }

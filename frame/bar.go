@@ -1,9 +1,9 @@
 package frame
 
 import (
+	"errors"
 	"image"
 	"image/color"
-	"io/ioutil"
 	"log"
 
 	"github.com/BurntSushi/freetype-go/freetype"
@@ -15,18 +15,14 @@ import (
 	"github.com/xen0ne/helium/wm"
 )
 
+// Bar is the title bar of the frame
 type Bar struct {
 	*xwindow.Window
+	exists bool
 }
 
 // AddBar adds a title bar to the given frame
 func (f *Frame) AddBar() {
-
-	// we can't add a bar if there is no parent
-	// if f.parent == nil {
-	// 	log.Printf("Frame %s does not have a parent\n", f.String())
-	// 	return
-	// }
 
 	if f.bar != nil {
 		log.Printf("Frame %s already has a bar \n", f.String())
@@ -41,9 +37,16 @@ func (f *Frame) AddBar() {
 	if err != nil {
 		log.Fatalf("Could not create new id %s", err)
 	}
+	b.exists = config.Bar.Height > 0
+	var h int
+	if b.exists {
+		h = config.Bar.Height
+	} else {
+		h = 1
+	}
 	b.Create(wm.X.RootWin(),
 		0, 0,
-		g.Width(), config.Bar.Height,
+		g.Width(), h,
 		xproto.CwBackPixel|xproto.CwEventMask,
 		config.Bar.Focused, xproto.EventMaskButtonPress|
 			xproto.EventMaskButtonRelease|
@@ -57,16 +60,20 @@ func (f *Frame) AddBar() {
 
 	f.bar = &b
 
-	b.Map()
-
 	f.UpdateBar()
+	if f.bar.exists {
+		b.Map()
+		f.addFrameEvents()
+	}
 
-	f.addFrameEvents()
 }
 
 // UpdateBar updates the title of the frames bar
 func (f *Frame) UpdateBar() {
-
+	if f.bar.exists {
+		log.Println("no bar")
+		return
+	}
 	title, err := ewmh.WmNameGet(wm.X, f.client.Id)
 	if err != nil {
 		log.Println(err)
@@ -87,6 +94,9 @@ func (f *Frame) UpdateBar() {
 // Draw draws the given text to the bar with a background
 // color of bg and text color of fg
 func (b *Bar) Draw(title string, bg, fg uint32) {
+	if !b.exists {
+		return
+	}
 	g, err := b.Geometry()
 	if err != nil {
 		log.Printf("Cannot get geometry for bar %x, bc: %s\n", b.Id, err)
@@ -101,25 +111,36 @@ func (b *Bar) Draw(title string, bg, fg uint32) {
 func addtext(bar *xwindow.Window, text string, bg, fg uint32, w, h int) {
 	// Create an image using the over estimated extents.
 	img := xgraphics.New(wm.X, image.Rect(0, 0, w, h))
-	xgraphics.BlendBgColor(img, IntToColor(bg))
-	// open ttf
-	bs, err := ioutil.ReadFile(config.Bar.FontPath)
+	xgraphics.BlendBgColor(img, intToColor(bg))
+
+	x, y, t, err := trimText(w, h, text)
 	if err != nil {
-		log.Fatalln(err)
-	}
-	font, err := freetype.ParseFont(bs)
-	if err != nil {
-		log.Fatalln(err)
+		// log.Println(err)
+		return
 	}
 
-	fontSize := 12.0
+	_, _, err = img.Text(x, y, intToColor(fg),
+		config.Bar.FontSize, config.Bar.Font, t)
+
+	if err != nil {
+		log.Printf("Could not draw font to bar because: %v", err)
+		return
+	}
+	// Now draw the image to the window and destroy it.
+	img.XSurfaceSet(bar.Id)
+	// subimg := img.SubImage(image.Rect(0, 0, ew, eh))
+	img.XDraw()
+	img.XPaint(bar.Id)
+	img.Destroy()
+}
+
+func trimText(w, h int, text string) (int, int, string, error) {
+	runes := []rune(text)
 
 	ctx := freetype.NewContext()
 	ctx.SetDPI(72)
-	ctx.SetFont(font)
-	ctx.SetFontSize(fontSize)
-
-	runes := []rune(text)
+	ctx.SetFont(config.Bar.Font)
+	ctx.SetFontSize(config.Bar.FontSize)
 
 	var ew, eh int
 
@@ -132,8 +153,7 @@ func addtext(bar *xwindow.Window, text string, bg, fg uint32, w, h int) {
 		eh = int(ehf / 256)
 
 		if eh > h {
-			log.Println("height of font is too big for bar")
-			return
+			return -1, -1, "", errors.New("height of font is too big for bar")
 		}
 
 		if ew < (w - (2 * config.Bar.TextOffset)) {
@@ -149,21 +169,12 @@ func addtext(bar *xwindow.Window, text string, bg, fg uint32, w, h int) {
 		x = (w - ew) / 2
 	}
 
-	_, _, err = img.Text(x, 0, IntToColor(fg), fontSize, font, string(runes))
-	if err != nil {
-		log.Printf("Could not draw font to bar because: %v", err)
-		return
-	}
+	y := (h - eh) / 2
 
-	// Now draw the image to the window and destroy it.
-	img.XSurfaceSet(bar.Id)
-	// subimg := img.SubImage(image.Rect(0, 0, ew, eh))
-	img.XDraw()
-	img.XPaint(bar.Id)
-	img.Destroy()
+	return x, y, string(runes), nil
 }
 
-func IntToColor(i uint32) color.Color {
+func intToColor(i uint32) color.Color {
 	r := i >> 16 & 0xff
 	g := i >> 8 & 0xff
 	b := i >> 0 & 0xff

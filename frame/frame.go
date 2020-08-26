@@ -193,7 +193,8 @@ func (f *Frame) Unfocus() {
 
 // Contains tells us if the given frame has a window of the given id
 func (f *Frame) Contains(id xproto.Window) bool {
-	return f.Id == id || f.client.Id == id || f.bar.Id == id
+	return f.Id == id || f.client.Id == id ||
+		(f.bar.exists && f.bar.Id == id)
 }
 
 // Close gracefully kills the client of the current frame
@@ -233,13 +234,14 @@ func (f *Frame) Resize(w, h int) {
 	f.w = w
 	f.h = h
 	f.Window.Resize(w, h)
-	f.bar.Resize(w, config.Bar.Height)
+	if f.bar.exists {
+		f.bar.Resize(w, config.Bar.Height)
+	}
 	f.client.Resize(w, h-config.Bar.Height)
 }
 
 // ResizeRel resizes the frame to the given width and height
 func (f *Frame) ResizeRel(dw, dh int, dir Direction) {
-
 	switch f.resizedir {
 	case northDir:
 		f.y += dh
@@ -257,6 +259,8 @@ func (f *Frame) ResizeRel(dw, dh int, dir Direction) {
 	}
 
 	f.MoveResize(f.x, f.y, f.w, f.h)
-	f.bar.Resize(f.w, config.Bar.Height)
+	if f.bar.exists {
+		f.bar.Resize(f.w, config.Bar.Height)
+	}
 	f.client.Resize(f.w, f.h-config.Bar.Height)
 }
