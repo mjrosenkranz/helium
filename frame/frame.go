@@ -142,6 +142,11 @@ func New(c *xwindow.Window) *Frame {
 	return &f
 }
 
+// Tag returns the tag of the frame
+func (f *Frame) Tag() int {
+	return f.tag
+}
+
 // Map maps all the components of a Frame
 func (f *Frame) Map() {
 	f.Window.Map()
@@ -149,6 +154,12 @@ func (f *Frame) Map() {
 	if f.bar != nil {
 		f.bar.Map()
 	}
+}
+
+// Unmap unmaps the Frame and removes it from the focus queue
+func (f *Frame) Unmap() {
+	f.Window.Unmap()
+	wm.FocusQ = wm.RemoveFrame(f, wm.FocusQ)
 }
 
 // FrameId returns the id of a frame

@@ -9,6 +9,7 @@ const (
 	unfocusedState
 	movingState
 	resizingState
+	unmappedState
 )
 
 const (

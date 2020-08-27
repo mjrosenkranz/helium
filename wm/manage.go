@@ -12,6 +12,8 @@ var (
 
 	// FocusQ is the order of focused frames
 	FocusQ []Frame
+
+	IsShowing = false
 )
 
 // ById returns a *Frame if the id matches that of a window or it's associated
@@ -82,4 +84,20 @@ func FocusPrev() {
 	FocusQ = append(FocusQ[1:], FocusQ[0])
 
 	GetFocused().Focus()
+}
+
+func ToggleTag(t int) {
+	for _, f := range ManagedFrames {
+		if f.Tag() == t {
+			if IsShowing {
+				fmt.Println("unmapping")
+				f.Unmap()
+			} else {
+				fmt.Println("mapping")
+				f.Map()
+			}
+		}
+	}
+
+	IsShowing = !IsShowing
 }

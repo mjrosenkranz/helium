@@ -3,6 +3,7 @@ package wm
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/xen0ne/helium/ipc"
@@ -41,6 +42,13 @@ func parseMsg(m string) (string, error) {
 		switch args[0] {
 		case "focus":
 			return handleFocusMsg(args[1])
+		case "toggle":
+			t, err := strconv.ParseInt(args[1], 0, 0)
+			if err != nil {
+				return err.Error(), err
+			}
+			ToggleTag(int(t))
+			return "", nil
 		default:
 			return "", fmt.Errorf("%s is not a command", args[0])
 		}

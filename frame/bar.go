@@ -2,6 +2,7 @@ package frame
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
 	"log"
@@ -89,7 +90,7 @@ func (f *Frame) UpdateBar() {
 		fg = config.Bar.TextUnfocused
 	}
 
-	f.bar.Draw(title, bg, fg)
+	f.bar.Draw(fmt.Sprintf("%d: %s", f.tag, title), bg, fg)
 }
 
 // Draw draws the given text to the bar with a background

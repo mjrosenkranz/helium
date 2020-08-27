@@ -9,4 +9,7 @@ type Frame interface {
 	Focus()
 	Unfocus()
 	Close()
+	Tag() int
+	Map()
+	Unmap()
 }
