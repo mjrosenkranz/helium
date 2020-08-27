@@ -174,13 +174,12 @@ func (f *Frame) Focus() {
 
 	f.UpdateBar()
 
-	// if there is a previously focued, tell them to unfocus
-	if wm.GetFocused() != nil && !wm.IsFocused(f) {
-		wm.GetFocused().Unfocus()
-	}
-
 	// remove from focus queue
 	wm.FocusQ = wm.RemoveFrame(f, wm.FocusQ)
+	// if there is a previously focued, tell them to unfocus
+	if wm.GetFocused() != nil {
+		wm.GetFocused().Unfocus()
+	}
 	// add to focus queue
 	wm.FocusQ = wm.AddFrame(f, wm.FocusQ)
 }

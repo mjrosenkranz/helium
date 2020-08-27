@@ -37,6 +37,7 @@ func (f *Frame) AddBar() {
 	if err != nil {
 		log.Fatalf("Could not create new id %s", err)
 	}
+
 	b.exists = config.Bar.Height > 0
 	var h int
 	if b.exists {
@@ -70,7 +71,7 @@ func (f *Frame) AddBar() {
 
 // UpdateBar updates the title of the frames bar
 func (f *Frame) UpdateBar() {
-	if f.bar.exists {
+	if !f.bar.exists {
 		log.Println("no bar")
 		return
 	}

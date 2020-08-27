@@ -46,7 +46,7 @@ func Defaults() {
 	Bar.Unfocused = 0xffffdd
 	Bar.TextFocused = 0x000000
 	Bar.TextUnfocused = 0x000000
-	Bar.Height = 0
+	Bar.Height = 20
 	Bar.CenterText = true
 	Bar.TextOffset = 5
 	Bar.FontPath = "./extra/DejaVuSans.ttf"

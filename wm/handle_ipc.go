@@ -12,7 +12,7 @@ import (
 // requred before returning a new response
 func HandleIpcMsg(m ipc.Msg) ipc.Msg {
 	// parse the message
-	err := parseMsg(m.Str)
+	msg, err := parseMsg(m.Str)
 	// if cannot parse then send error msg back
 	if err != nil {
 		return ipc.NewIpcMsg(m.Conn, err.Error())
@@ -20,10 +20,10 @@ func HandleIpcMsg(m ipc.Msg) ipc.Msg {
 
 	// if can parse then do the action or send it off
 	// respond with success or not
-	return ipc.NewIpcMsg(m.Conn, "success")
+	return ipc.NewIpcMsg(m.Conn, msg)
 }
 
-func parseMsg(m string) error {
+func parseMsg(m string) (string, error) {
 	args := strings.Split(m, " ")
 	switch len(args) {
 	case 1:
@@ -35,31 +35,32 @@ func parseMsg(m string) error {
 				f.Close()
 			}
 		} else {
-			return fmt.Errorf("Command %s not found", cmd)
+			return "", fmt.Errorf("Command %s not found", cmd)
 		}
 	case 2:
 		switch args[0] {
 		case "focus":
 			return handleFocusMsg(args[1])
 		default:
-			return nil
+			return "", fmt.Errorf("%s is not a command", args[0])
 		}
 	case 3:
 		fmt.Println("three")
 	default:
-		return errors.New("Too many options")
+		return "", errors.New("Too many options")
 	}
-	return nil
+	return "success", nil
 }
 
-func handleFocusMsg(s string) error {
+func handleFocusMsg(s string) (string, error) {
 	switch s {
 	case "next":
-		wm.FocusNext()
+		FocusNext()
+		return "", nil
 	case "prev":
-		wm.FocusPrev()
-
+		FocusPrev()
+		return "", nil
 	default:
-		return fmt.Errorf("%s is not a valid focus command")
+		return "", fmt.Errorf("%s is not a valid focus command", s)
 	}
 }

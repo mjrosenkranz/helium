@@ -1,6 +1,8 @@
 package wm
 
 import (
+	"fmt"
+
 	"github.com/BurntSushi/xgb/xproto"
 )
 
@@ -55,4 +57,29 @@ func IsFocused(f Frame) bool {
 	}
 
 	return FocusQ[0].FrameId() == f.FrameId()
+}
+
+// FocusNext focuses the next window in the focus queue
+func FocusNext() {
+	if len(FocusQ) < 2 {
+		return
+	}
+
+	prev := FocusQ
+	FocusQ = append([]Frame{FocusQ[len(FocusQ)-1]},
+		FocusQ[:len(FocusQ)-1]...)
+	fmt.Printf("from %+v to: %+v\n", prev, FocusQ)
+
+	GetFocused().Focus()
+}
+
+// FocusPrev focuses the next window in the focus queue
+func FocusPrev() {
+	if len(FocusQ) < 2 {
+		return
+	}
+
+	FocusQ = append(FocusQ[1:], FocusQ[0])
+
+	GetFocused().Focus()
 }
