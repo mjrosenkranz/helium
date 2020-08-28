@@ -13,6 +13,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xgraphics"
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/xen0ne/helium/config"
+	"github.com/xen0ne/helium/consts"
 	"github.com/xen0ne/helium/wm"
 )
 
@@ -85,7 +86,7 @@ func (f *Frame) UpdateBar() {
 	bg := config.Bar.Focused
 	fg := config.Bar.TextFocused
 
-	if f.state == unfocusedState {
+	if f.state == consts.UnfocusedState {
 		bg = config.Bar.Unfocused
 		fg = config.Bar.TextUnfocused
 	}

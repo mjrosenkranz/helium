@@ -10,6 +10,7 @@ import (
 	"github.com/BurntSushi/xgbutil/mousebind"
 	"github.com/BurntSushi/xgbutil/xcursor"
 	"github.com/BurntSushi/xgbutil/xevent"
+	"github.com/xen0ne/helium/consts"
 	"github.com/xen0ne/helium/wm"
 )
 
@@ -34,7 +35,7 @@ func (f *Frame) moveDragBegin(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY in
 	f.py = rootY
 	f.Stack(xproto.StackModeAbove)
 	f.Focus()
-	f.state = movingState
+	f.state = consts.MovingState
 
 	cur, err := xcursor.CreateCursor(wm.X, xcursor.Gumby)
 	if err != nil {
@@ -46,7 +47,7 @@ func (f *Frame) moveDragBegin(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY in
 }
 
 func (f *Frame) moveDragStep(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int) {
-	if f.state == movingState {
+	if f.state == consts.MovingState {
 		dx := rootX - f.px
 		dy := rootY - f.py
 
@@ -60,7 +61,7 @@ func (f *Frame) moveDragStep(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int
 }
 
 func (f *Frame) moveDragEnd(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int) {
-	f.state = focusedState
+	f.state = consts.FocusedState
 	f.Focus()
 }
 
@@ -69,7 +70,7 @@ func (f *Frame) resizeDragBegin(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY 
 	f.py = rootY
 	f.Stack(xproto.StackModeAbove)
 	f.Focus()
-	f.state = resizingState
+	f.state = consts.ResizingState
 
 	// set the drag direction by which edge is closest
 	f.resizedir = f.dirFromPoint(eventX, eventY, f.w, f.h)
@@ -85,15 +86,15 @@ func (f *Frame) resizeDragBegin(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY 
 	return true, cur
 }
 
-func (f *Frame) dirFromPoint(x, y, w, h int) Direction {
-	m := map[Direction]int{
-		northDir: y,
-		southDir: h - y,
-		eastDir:  w - x,
-		westDir:  x,
+func (f *Frame) dirFromPoint(x, y, w, h int) consts.Direction {
+	m := map[consts.Direction]int{
+		consts.NorthDir: y,
+		consts.SouthDir: h - y,
+		consts.EastDir:  w - x,
+		consts.WestDir:  x,
 	}
 	min := math.Inf(1)
-	ret := noDir
+	ret := consts.NoDir
 
 	for k, v := range m {
 		if float64(v) < min {
@@ -106,7 +107,7 @@ func (f *Frame) dirFromPoint(x, y, w, h int) Direction {
 }
 
 func (f *Frame) resizeDragStep(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int) {
-	if f.state == resizingState {
+	if f.state == consts.ResizingState {
 		dx := rootX - f.px
 		dy := rootY - f.py
 
@@ -118,7 +119,7 @@ func (f *Frame) resizeDragStep(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY i
 }
 
 func (f *Frame) resizeDragEnd(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY int) {
-	f.state = focusedState
-	f.resizedir = noDir
+	f.state = consts.FocusedState
+	f.resizedir = consts.NoDir
 	f.Focus()
 }

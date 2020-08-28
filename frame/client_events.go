@@ -9,6 +9,7 @@ import (
 	"github.com/BurntSushi/xgbutil/mousebind"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/xprop"
+	"github.com/xen0ne/helium/consts"
 	"github.com/xen0ne/helium/wm"
 )
 
@@ -31,7 +32,7 @@ func (f *Frame) addClientEvents() {
 		func(X *xgbutil.XUtil, ev xevent.ButtonPressEvent) {
 			xproto.AllowEvents(X.Conn(), xproto.AllowReplayPointer, 0)
 			// only focus if not already
-			if f.state != focusedState {
+			if f.state != consts.FocusedState {
 				f.Focus()
 			}
 		}).Connect(wm.X, f.client.Id, "1", true, true)
@@ -77,7 +78,7 @@ func (f *Frame) cConfigureRequest() xevent.ConfigureRequestFun {
 
 	fn := func(X *xgbutil.XUtil, ev xevent.ConfigureRequestEvent) {
 		// ignore this event if the state requires so
-		if f.state == movingState || f.state == resizingState {
+		if f.state == consts.MovingState || f.state == consts.ResizingState {
 			return
 		}
 

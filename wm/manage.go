@@ -86,14 +86,13 @@ func FocusPrev() {
 	GetFocused().Focus()
 }
 
+// ToggleTag toggles the visibility of the given tag
 func ToggleTag(t int) {
 	for _, f := range ManagedFrames {
 		if f.Tag() == t {
 			if IsShowing {
-				fmt.Println("unmapping")
 				f.Unmap()
 			} else {
-				fmt.Println("mapping")
 				f.Map()
 			}
 		}

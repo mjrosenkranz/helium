@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/xen0ne/helium/config"
+	"github.com/xen0ne/helium/consts"
 	"github.com/xen0ne/helium/wm"
 
 	"github.com/BurntSushi/xgb/xproto"
@@ -20,10 +21,10 @@ type Frame struct {
 	*xwindow.Window
 	client     *xwindow.Window
 	bar        *Bar
-	state      State
+	state      consts.State
 	x, y, w, h int
 	px, py     int
-	resizedir  Direction
+	resizedir  consts.Direction
 	tag        int
 }
 
@@ -179,7 +180,7 @@ func (f *Frame) Focus() {
 		log.Printf("Cannot set active window to %s\n", f.String())
 	}
 	f.Stack(xproto.StackModeAbove)
-	f.state = focusedState
+	f.state = consts.FocusedState
 
 	f.client.Focus()
 
@@ -197,7 +198,7 @@ func (f *Frame) Focus() {
 
 // Unfocus updates the state and the bar of the Frame
 func (f *Frame) Unfocus() {
-	f.state = unfocusedState
+	f.state = consts.UnfocusedState
 	f.UpdateBar()
 }
 
@@ -251,16 +252,16 @@ func (f *Frame) Resize(w, h int) {
 }
 
 // ResizeRel resizes the frame to the given width and height
-func (f *Frame) ResizeRel(dw, dh int, dir Direction) {
+func (f *Frame) ResizeRel(dw, dh int, dir consts.Direction) {
 	switch f.resizedir {
-	case northDir:
+	case consts.NorthDir:
 		f.y += dh
 		f.h -= dh
-	case southDir:
+	case consts.SouthDir:
 		f.h += dh
-	case eastDir:
+	case consts.EastDir:
 		f.w += dw
-	case westDir:
+	case consts.WestDir:
 		f.x += dw
 		f.w -= dw
 	default:
@@ -273,4 +274,9 @@ func (f *Frame) ResizeRel(dw, dh int, dir Direction) {
 		f.bar.Resize(f.w, config.Bar.Height)
 	}
 	f.client.Resize(f.w, f.h-config.Bar.Height)
+}
+
+// State returns the state of the frame
+func (f *Frame) State() consts.State {
+	return f.state
 }

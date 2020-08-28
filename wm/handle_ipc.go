@@ -49,6 +49,10 @@ func parseMsg(m string) (string, error) {
 			}
 			ToggleTag(int(t))
 			return "", nil
+		case "tag":
+			if GetFocused() != nil {
+
+			}
 		default:
 			return "", fmt.Errorf("%s is not a command", args[0])
 		}
