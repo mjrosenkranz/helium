@@ -13,6 +13,7 @@ type Frame interface {
 	Unfocus()
 	Close()
 	Tag() int
+	SetTag(int)
 	Map()
 	Unmap()
 	State() consts.State

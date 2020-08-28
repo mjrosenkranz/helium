@@ -47,11 +47,21 @@ func parseMsg(m string) (string, error) {
 			if err != nil {
 				return err.Error(), err
 			}
+			if !IsValidTag(int(t)) {
+				return "", fmt.Errorf("%d is not a valid tag", t)
+			}
 			ToggleTag(int(t))
 			return "", nil
 		case "tag":
+			t, err := strconv.ParseInt(args[1], 0, 0)
+			if err != nil {
+				return err.Error(), err
+			}
+			if !IsValidTag(int(t)) {
+				return "", fmt.Errorf("%d is not a valid tag", t)
+			}
 			if GetFocused() != nil {
-
+				GetFocused().SetTag(int(t))
 			}
 		default:
 			return "", fmt.Errorf("%s is not a command", args[0])

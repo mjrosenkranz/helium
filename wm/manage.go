@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/BurntSushi/xgb/xproto"
+	"github.com/xen0ne/helium/consts"
 )
 
 var (
@@ -14,6 +15,8 @@ var (
 	FocusQ []Frame
 
 	IsShowing = false
+
+	Tags []bool
 )
 
 // ById returns a *Frame if the id matches that of a window or it's associated
@@ -81,7 +84,13 @@ func FocusPrev() {
 		return
 	}
 
-	FocusQ = append(FocusQ[1:], FocusQ[0])
+	// count how many times we have attempted to focus the previous
+	for i := 0; i < len(FocusQ); i++ {
+		if GetFocused().State() != consts.UnmappedState {
+			break
+		}
+		FocusQ = append(FocusQ[1:], FocusQ[0])
+	}
 
 	GetFocused().Focus()
 }
@@ -90,13 +99,38 @@ func FocusPrev() {
 func ToggleTag(t int) {
 	for _, f := range ManagedFrames {
 		if f.Tag() == t {
-			if IsShowing {
+			if Tags[t] {
 				f.Unmap()
 			} else {
-				f.Map()
+				if NoneToFocus() {
+					f.Map()
+					f.Focus()
+					fmt.Println("none to focus so reverting")
+				} else {
+					f.Map()
+				}
 			}
 		}
 	}
 
-	IsShowing = !IsShowing
+	Tags[t] = !Tags[t]
+}
+
+// IsValidTag returns if t is a valid tag
+func IsValidTag(t int) bool {
+	fmt.Printf("numtags: %d", len(Tags))
+	return t > 0 && t < len(Tags)
+}
+
+// NoneToFocus returns wether or not there are any windows that are focusable
+func NoneToFocus() bool {
+	numFocusable := 0
+
+	for _, f := range ManagedFrames {
+		if f.State() != consts.UnmappedState {
+			numFocusable++
+		}
+	}
+
+	return numFocusable == 0
 }

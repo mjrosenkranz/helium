@@ -63,10 +63,10 @@ func (f *Frame) AddBar() {
 
 	f.bar = &b
 
-	f.UpdateBar()
 	if f.bar.exists {
 		b.Map()
 		f.addFrameEvents()
+		f.UpdateBar()
 	}
 
 }
@@ -91,7 +91,7 @@ func (f *Frame) UpdateBar() {
 		fg = config.Bar.TextUnfocused
 	}
 
-	f.bar.Draw(fmt.Sprintf("%d: %s", f.tag, title), bg, fg)
+	f.bar.Draw(fmt.Sprintf("%+v %d: %s", f.state, f.tag, title), bg, fg)
 }
 
 // Draw draws the given text to the bar with a background

@@ -130,8 +130,6 @@ func New(c *xwindow.Window) *Frame {
 	// set the tag to initial
 	f.tag = 0
 
-	f.Map()
-
 	err = xproto.ReparentWindowChecked(wm.X.Conn(),
 		f.client.Id, f.Id, 0, int16(config.Bar.Height)).Check()
 	if err != nil {
@@ -140,12 +138,24 @@ func New(c *xwindow.Window) *Frame {
 
 	f.addClientEvents()
 
+	f.Map()
+
 	return &f
 }
 
 // Tag returns the tag of the frame
 func (f *Frame) Tag() int {
 	return f.tag
+}
+
+// SetTag sets the frame's tag
+func (f *Frame) SetTag(t int) {
+	f.tag = t
+	if wm.Tags[t] {
+		f.UpdateBar()
+	} else {
+		f.Unmap()
+	}
 }
 
 // Map maps all the components of a Frame
@@ -159,8 +169,10 @@ func (f *Frame) Map() {
 
 // Unmap unmaps the Frame and removes it from the focus queue
 func (f *Frame) Unmap() {
+	f.Unfocus()
+	f.state = consts.UnmappedState
 	f.Window.Unmap()
-	wm.FocusQ = wm.RemoveFrame(f, wm.FocusQ)
+	wm.FocusPrev()
 }
 
 // FrameId returns the id of a frame
@@ -175,20 +187,23 @@ func (f *Frame) String() string {
 
 // Focus alerts X of the Frame we want to focus and provides input focus
 func (f *Frame) Focus() {
+	if f.state == consts.FocusedState {
+		fmt.Println("already focused")
+		return
+	}
 	err := ewmh.ActiveWindowSet(wm.X, f.client.Id)
 	if err != nil {
 		log.Printf("Cannot set active window to %s\n", f.String())
 	}
 	f.Stack(xproto.StackModeAbove)
 	f.state = consts.FocusedState
-
 	f.client.Focus()
 
 	f.UpdateBar()
 
 	// remove from focus queue
 	wm.FocusQ = wm.RemoveFrame(f, wm.FocusQ)
-	// if there is a previously focued, tell them to unfocus
+	// if there is a currently focued, tell them to unfocus
 	if wm.GetFocused() != nil {
 		wm.GetFocused().Unfocus()
 	}

@@ -32,4 +32,7 @@ func Setup(xu *xgbutil.XUtil) {
 	if err != nil {
 		log.Fatalf("Could not listen to Root window events: %s\n", err)
 	}
+
+	Tags = []bool{true, true, true, true,
+		true, true, true, true}
 }

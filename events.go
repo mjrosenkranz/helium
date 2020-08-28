@@ -28,9 +28,9 @@ func handleMapReq(X *xgbutil.XUtil, ev xevent.MapRequestEvent) {
 		if f == nil {
 			return
 		}
+		wm.ManagedFrames = wm.AddFrame(f, wm.ManagedFrames)
 		f.AddBar()
 		f.Focus()
-		wm.ManagedFrames = wm.AddFrame(f, wm.ManagedFrames)
 	}
 }
 
