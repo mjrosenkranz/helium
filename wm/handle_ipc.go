@@ -63,6 +63,19 @@ func parseMsg(m string) (string, error) {
 			if GetFocused() != nil {
 				GetFocused().SetTag(int(t))
 			}
+		case "print":
+			switch args[1] {
+			case "tags":
+				ret := ""
+				for i, t := range Tags {
+					ret += fmt.Sprintf("tag %d\nmapped: %v\n%s\n", i, t.Mapped,
+						"--------")
+				}
+
+				return ret, nil
+			default:
+				return "", fmt.Errorf("cannot print %s", args[0])
+			}
 		default:
 			return "", fmt.Errorf("%s is not a command", args[0])
 		}

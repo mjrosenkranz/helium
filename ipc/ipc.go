@@ -1,6 +1,7 @@
 package ipc
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -36,6 +37,8 @@ func CtrlMsg(m string) {
 	msg := Msg{conn, m}
 	Send(msg)
 
+	reply := ""
+
 	for {
 		tmp := make([]byte, MSGLEN)
 		_, err = conn.Read(tmp)
@@ -43,15 +46,16 @@ func CtrlMsg(m string) {
 			log.Fatal(err)
 		}
 
-		reply := string(tmp)
+		reply += string(tmp)
 
 		if strings.Contains(reply, EOM) {
 			ss := strings.Split(reply, EOM)
-			log.Println(ss[0])
-			return
+			fmt.Println(ss[0])
+			break
 		}
-		log.Println(reply)
 	}
+
+	fmt.Println(reply)
 
 }
 

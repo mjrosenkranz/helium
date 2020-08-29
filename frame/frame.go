@@ -151,7 +151,7 @@ func (f *Frame) Tag() int {
 // SetTag sets the frame's tag
 func (f *Frame) SetTag(t int) {
 	f.tag = t
-	if wm.Tags[t] {
+	if wm.Tags[t].Mapped {
 		f.UpdateBar()
 	} else {
 		f.Unmap()

@@ -16,7 +16,7 @@ var (
 
 	IsShowing = false
 
-	Tags []bool
+	Tags []Tag
 )
 
 // ById returns a *Frame if the id matches that of a window or it's associated
@@ -99,7 +99,8 @@ func FocusPrev() {
 func ToggleTag(t int) {
 	for _, f := range ManagedFrames {
 		if f.Tag() == t {
-			if Tags[t] {
+			// Unmap
+			if Tags[t].Mapped {
 				f.Unmap()
 			} else {
 				if NoneToFocus() {
@@ -113,7 +114,7 @@ func ToggleTag(t int) {
 		}
 	}
 
-	Tags[t] = !Tags[t]
+	Tags[t].Mapped = !Tags[t].Mapped
 }
 
 // IsValidTag returns if t is a valid tag
