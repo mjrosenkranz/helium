@@ -46,17 +46,18 @@ func CtrlMsg(m string) {
 			log.Fatal(err)
 		}
 
-		reply += string(tmp)
+		part := string(tmp)
 
-		if strings.Contains(reply, EOM) {
-			ss := strings.Split(reply, EOM)
-			fmt.Println(ss[0])
+		if strings.Contains(part, EOM) {
+			ss := strings.Split(part, EOM)
+			reply += ss[0]
 			break
 		}
+
+		reply += part
 	}
 
 	fmt.Println(reply)
-
 }
 
 // RecieveMsg sends messages read in a gorutine to the main wm process

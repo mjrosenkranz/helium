@@ -68,8 +68,9 @@ func parseMsg(m string) (string, error) {
 			case "tags":
 				ret := ""
 				for i, t := range Tags {
-					ret += fmt.Sprintf("tag %d\nmapped: %v\n%s\n", i, t.Mapped,
-						"--------")
+					ret += fmt.Sprintf("tag %d\n"+
+						"mapped: %v\n"+
+						"frames:%+v\n", i, t.Mapped, t.Frames())
 				}
 
 				return ret, nil
