@@ -93,12 +93,13 @@ func (f *Frame) cDestroyNotify() xevent.DestroyNotifyFun {
 		log.Printf("destroy notify for %x\n", ev.Window)
 
 		f.client.Detach()
-		f.Destroy()
 
 		if f.bar.exists {
 			f.bar.Detach()
 			f.bar.Destroy()
 		}
+
+		f.Destroy()
 
 		// get the last destroy notify
 		X.Sync()

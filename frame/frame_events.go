@@ -115,6 +115,8 @@ func (f *Frame) resizeDragStep(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY i
 
 		f.px = rootX
 		f.py = rootY
+
+		f.UpdateBar()
 	}
 }
 
@@ -122,4 +124,5 @@ func (f *Frame) resizeDragEnd(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY in
 	f.state = consts.FocusedState
 	f.resizedir = consts.NoDir
 	f.Focus()
+	f.UpdateBar()
 }
