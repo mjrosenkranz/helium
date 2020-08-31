@@ -165,14 +165,17 @@ func (f *Frame) Map() {
 	if f.bar != nil {
 		f.bar.Map()
 	}
+	f.state = consts.UnfocusedState
 }
 
 // Unmap unmaps the Frame and removes it from the focus queue
 func (f *Frame) Unmap() {
 	f.Unfocus()
-	f.state = consts.UnmappedState
 	f.Window.Unmap()
-	wm.FocusPrev()
+	if wm.IsFocused(f) {
+		wm.FocusPrev()
+	}
+	f.state = consts.UnmappedState
 }
 
 // FrameId returns the id of a frame
@@ -182,15 +185,28 @@ func (f *Frame) FrameId() xproto.Window {
 
 // String returns a string representation of a Frame
 func (f *Frame) String() string {
-	return fmt.Sprintf("frame client: %x", f.client.Id)
+	return fmt.Sprintf("frame id: %x, state: %d", f.Window.Id, f.state)
 }
 
 // Focus alerts X of the Frame we want to focus and provides input focus
 func (f *Frame) Focus() {
-	if f.state == consts.FocusedState {
-		fmt.Println("already focused")
-		return
+	// if f.state == consts.FocusedState {
+	// 	fmt.Println("already focused")
+	// 	return
+	// }
+
+	// if there is a currently focued, tell them to unfocus
+	if wm.GetFocused() != nil {
+		wm.GetFocused().Unfocus()
 	}
+
+	// remove from focus queue
+	wm.FocusQ = wm.RemoveFrame(f, wm.FocusQ)
+	// add to focus queue
+	wm.FocusQ = wm.AddFrame(f, wm.FocusQ)
+
+	fmt.Printf("focusing %s\n", f.String())
+
 	err := ewmh.ActiveWindowSet(wm.X, f.client.Id)
 	if err != nil {
 		log.Printf("Cannot set active window to %s\n", f.String())
@@ -201,18 +217,13 @@ func (f *Frame) Focus() {
 
 	f.UpdateBar()
 
-	// remove from focus queue
-	wm.FocusQ = wm.RemoveFrame(f, wm.FocusQ)
-	// if there is a currently focued, tell them to unfocus
-	if wm.GetFocused() != nil {
-		wm.GetFocused().Unfocus()
-	}
-	// add to focus queue
-	wm.FocusQ = wm.AddFrame(f, wm.FocusQ)
 }
 
 // Unfocus updates the state and the bar of the Frame
 func (f *Frame) Unfocus() {
+	if f.state == consts.UnmappedState {
+		return
+	}
 	f.state = consts.UnfocusedState
 	f.UpdateBar()
 }

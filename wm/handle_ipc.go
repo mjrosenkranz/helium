@@ -72,7 +72,12 @@ func parseMsg(m string) (string, error) {
 						"mapped: %v\n"+
 						"frames:%+v\n", i, t.Mapped, t.Frames())
 				}
-
+				return ret, nil
+			case "queue":
+				ret := ""
+				for _, f := range FocusQ {
+					ret += fmt.Sprintf("%+v\n", f)
+				}
 				return ret, nil
 			default:
 				return "", fmt.Errorf("cannot print %s", args[0])

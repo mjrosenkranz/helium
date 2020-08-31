@@ -70,10 +70,17 @@ func FocusNext() {
 		return
 	}
 
-	prev := FocusQ
-	FocusQ = append([]Frame{FocusQ[len(FocusQ)-1]},
-		FocusQ[:len(FocusQ)-1]...)
-	fmt.Printf("from %+v to: %+v\n", prev, FocusQ)
+	GetFocused().Unfocus()
+
+	for i := 0; i < len(FocusQ); i++ {
+		FocusQ = append([]Frame{FocusQ[len(FocusQ)-1]},
+			FocusQ[:len(FocusQ)-1]...)
+
+		if GetFocused().State() != consts.UnmappedState {
+			fmt.Printf("found window %s with sate %d\n", GetFocused(), GetFocused().State())
+			break
+		}
+	}
 
 	GetFocused().Focus()
 }
@@ -84,15 +91,30 @@ func FocusPrev() {
 		return
 	}
 
+	prev := GetFocused()
+
 	// count how many times we have attempted to focus the previous
 	for i := 0; i < len(FocusQ); i++ {
-		if GetFocused().State() != consts.UnmappedState {
-			break
-		}
 		FocusQ = append(FocusQ[1:], FocusQ[0])
+		if GetFocused().State() != consts.UnmappedState {
+			fmt.Printf("found window %s with sate %d\n", GetFocused(), GetFocused().State())
+			break
+		} else {
+			if i == len(FocusQ)-1 {
+				fmt.Println("No more to focus, maintaining same position")
+				return
+			}
+		}
 	}
+	prev.Unfocus()
 
 	GetFocused().Focus()
+}
+
+func PrintFrames() {
+	for _, f := range ManagedFrames {
+		fmt.Printf("frame %s state: %d\n", f, f.State())
+	}
 }
 
 // ToggleTag toggles the visibility of the given tag

@@ -49,7 +49,7 @@ func Defaults() {
 	Bar.Height = 20
 	Bar.CenterText = true
 	Bar.TextOffset = 5
-	Bar.FontPath = "./extra/DejaVuSans.ttf"
+	Bar.FontPath = "/home/xenone/code/helium/extra/DejaVuSans.ttf"
 	Bar.FontName = "DejaVuSans"
 	Bar.FontSize = 12.0
 	Bar.Font = openFont()
