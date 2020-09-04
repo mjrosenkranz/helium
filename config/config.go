@@ -81,7 +81,6 @@ func ValidateAndModifyColor(i *uint32, s string) error {
 
 // ValidateAndModifyInt validates an int and then sets the value if valid
 func ValidateAndModifyInt(i *int, s string) error {
-	s = strings.TrimLeft(s, "#")
 	n, err := strconv.ParseInt(s, 0, 0)
 	if err != nil {
 		return err
@@ -91,9 +90,19 @@ func ValidateAndModifyInt(i *int, s string) error {
 	return nil
 }
 
+// ValidateAndModifyBool validates an int and then sets the value if valid
+func ValidateAndModifyBool(b *bool, s string) error {
+	n, err := strconv.ParseBool(s)
+	if err != nil {
+		return err
+	}
+	*b = n
+
+	return nil
+}
+
 // ValidateAndModifyFloat validates an float and then sets the value if valid
 func ValidateAndModifyFloat(f *float64, s string) error {
-	s = strings.TrimLeft(s, "#")
 	n, err := strconv.ParseFloat(s, 64)
 	if err != nil {
 		return err

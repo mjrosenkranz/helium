@@ -111,7 +111,18 @@ func (f *Frame) resizeDragStep(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY i
 		dx := rootX - f.px
 		dy := rootY - f.py
 
-		f.ResizeRel(dx, dy, f.resizedir)
+		switch f.resizedir {
+		case consts.EastDir:
+			f.ResizeRel(dx, f.resizedir)
+		case consts.WestDir:
+			f.ResizeRel(-dx, f.resizedir)
+		case consts.NorthDir:
+			f.ResizeRel(-dy, f.resizedir)
+		case consts.SouthDir:
+			f.ResizeRel(dy, f.resizedir)
+		default:
+			return
+		}
 
 		f.px = rootX
 		f.py = rootY

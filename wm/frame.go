@@ -18,4 +18,6 @@ type Frame interface {
 	Unmap()
 	State() consts.State
 	UpdateBar()
+	ResizeRel(int, consts.Direction)
+	Resize(int, int)
 }

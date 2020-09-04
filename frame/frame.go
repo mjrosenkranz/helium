@@ -278,20 +278,20 @@ func (f *Frame) Resize(w, h int) {
 }
 
 // ResizeRel resizes the frame to the given width and height
-func (f *Frame) ResizeRel(dw, dh int, dir consts.Direction) {
-	switch f.resizedir {
+func (f *Frame) ResizeRel(amt int, dir consts.Direction) {
+	switch dir {
 	case consts.NorthDir:
-		f.y += dh
-		f.h -= dh
+		f.y -= amt
+		f.h += amt
 	case consts.SouthDir:
-		f.h += dh
+		f.h += amt
 	case consts.EastDir:
-		f.w += dw
+		f.w += amt
 	case consts.WestDir:
-		f.x += dw
-		f.w -= dw
+		f.x -= amt
+		f.w += amt
 	default:
-		f.Resize(f.w+dw, f.h+dw)
+		fmt.Println("asdfja;ldskj")
 		return
 	}
 

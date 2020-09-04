@@ -1,12 +1,12 @@
 package wm
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/xen0ne/helium/config"
+	"github.com/xen0ne/helium/consts"
 	"github.com/xen0ne/helium/ipc"
 )
 
@@ -28,47 +28,88 @@ func HandleIpcMsg(m ipc.Msg) {
 
 func parseMsg(m ipc.Msg) error {
 	args := strings.Split(m.Str, " ")
-	switch len(args) {
-	case 1:
-		cmd := args[0]
-		if "close" == cmd {
-			f := GetFocused()
-			if f != nil {
-				fmt.Println(f)
-				f.Close()
-			}
-		} else {
-			return fmt.Errorf("Command %s not found", cmd)
+	switch args[0] {
+	case "close":
+		f := GetFocused()
+		if f != nil {
+			fmt.Println(f)
+			f.Close()
 		}
-	case 2:
-		switch args[0] {
-		case "focus":
-			return handleFocusMsg(args[1])
-		case "toggle":
-			return handleToggle(args[1])
-		case "tag":
-			t, err := strconv.ParseInt(args[1], 0, 0)
-			if err != nil {
-				return err
-			}
-			if !IsValidTag(int(t)) {
-				return fmt.Errorf("%d is not a valid tag", t)
-			}
-			if GetFocused() != nil {
-				GetFocused().SetTag(int(t))
-			}
-		case "print":
-			return handlePrint(m, args)
-		default:
-			return fmt.Errorf("%s is not a command", args[0])
+	case "focus":
+		if len(args) < 2 {
+			return fmt.Errorf("Not enough arguments to %s", args[0])
 		}
-	case 3:
-		if args[0] == "config" {
-			return handleConfig(m, args[1], args[2])
+		return handleFocusMsg(args[1])
+	case "toggle":
+		if len(args) < 2 {
+			return fmt.Errorf("Not enough arguments to %s", args[0])
 		}
-		return fmt.Errorf("Cannot parse %s", args[1])
+		return handleToggle(args[1])
+	case "tag":
+		if len(args) < 2 {
+			return fmt.Errorf("Not enough arguments to %s", args[0])
+		}
+		t, err := strconv.ParseInt(args[1], 0, 0)
+		if err != nil {
+			return err
+		}
+		if !IsValidTag(int(t)) {
+			return fmt.Errorf("%d is not a valid tag", t)
+		}
+		if GetFocused() != nil {
+			GetFocused().SetTag(int(t))
+		}
+	case "print":
+		if len(args) < 2 {
+			return fmt.Errorf("Not enough arguments to %s, requires 2", args[0])
+		}
+		return handlePrint(m, args)
+	case "config":
+		if len(args) < 3 {
+			return fmt.Errorf("Not enough arguments to %s, requires at least 2", args[0])
+		}
+		// TODO make just an array
+		return handleConfig(m, args[1], args[2])
+	case "resize":
+		if len(args) < 3 {
+			return fmt.Errorf("Not enough arguments to %s, requires 2", args[0])
+		}
+
+		nx, err := strconv.ParseInt(args[1], 0, 0)
+		if err != nil {
+			return err
+		}
+
+		ny, err := strconv.ParseInt(args[2], 0, 0)
+		if err != nil {
+			return err
+		}
+
+		f := GetFocused()
+		if f != nil {
+			f.Resize(int(nx), int(ny))
+		}
+	case "resize_rel":
+		if len(args) < 3 {
+			return fmt.Errorf("Not enough arguments to %s, requires 2", args[0])
+		}
+
+		n, err := strconv.ParseInt(args[1], 0, 0)
+		if err != nil {
+			return err
+		}
+
+		dir, err := consts.StringToDir(args[2])
+		if err != nil {
+			return err
+		}
+
+		f := GetFocused()
+		if f != nil {
+			f.ResizeRel(int(n), dir)
+		}
 	default:
-		return errors.New("Too many options")
+		return fmt.Errorf("Command %s not found", args[0])
 	}
 	return nil
 }
@@ -120,7 +161,20 @@ func handleConfig(m ipc.Msg, s, v string) error {
 		}
 		UpdateFocused()
 		UpdateUnfocused()
-
+	case "bar_text_offset":
+		err := config.ValidateAndModifyInt(&config.Bar.TextOffset, v)
+		if err != nil {
+			return err
+		}
+		UpdateFocused()
+		UpdateUnfocused()
+	case "bar_text_center":
+		err := config.ValidateAndModifyBool(&config.Bar.CenterText, v)
+		if err != nil {
+			return err
+		}
+		UpdateFocused()
+		UpdateUnfocused()
 	default:
 		return fmt.Errorf("%s is not a valid config variable", s)
 	}
