@@ -17,4 +17,5 @@ type Frame interface {
 	Map()
 	Unmap()
 	State() consts.State
+	UpdateBar()
 }

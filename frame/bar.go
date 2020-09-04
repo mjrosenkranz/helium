@@ -118,7 +118,7 @@ func addtext(bar *xwindow.Window, text string, bg, fg uint32, w, h int) {
 
 	x, y, t, err := trimText(w, h, text)
 	if err != nil {
-		// logger.Log.Println(err)
+		logger.Log.Println(err)
 		return
 	}
 
@@ -170,6 +170,10 @@ func trimText(w, h int, text string) (int, int, string, error) {
 	x := config.Bar.TextOffset
 	if config.Bar.CenterText {
 		x = (w - ew) / 2
+	}
+
+	if eh > h {
+		return 0, 0, "", fmt.Errorf("Font is too tall")
 	}
 
 	y := (h - eh) / 2

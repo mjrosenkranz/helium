@@ -1,11 +1,13 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
+	"strconv"
+	"strings"
 
 	"github.com/BurntSushi/freetype-go/freetype"
 	"github.com/BurntSushi/freetype-go/freetype/truetype"
-	"github.com/xen0ne/helium/logger"
 )
 
 var (
@@ -21,12 +23,9 @@ var (
 		CenterText bool
 		// If the title text is not centered, the text offset from the ends
 		TextOffset int
-		// Path of the font to be used for the title bar
-		FontPath string
-		// Name of the bar font, it will replace the font path when I can figure that stuff out
-		FontName string
+		// FontSize is the size of the bar font
 		FontSize float64
-
+		// Font is a pointer to a truetype.Font
 		Font *truetype.Font
 	}
 
@@ -38,6 +37,7 @@ var (
 		Width int
 	}
 
+	// Tags contains all config items for a Tag
 	Tags struct {
 		// Number of tags
 		Number int
@@ -56,10 +56,8 @@ func Defaults() {
 	Bar.Height = 20
 	Bar.CenterText = true
 	Bar.TextOffset = 5
-	Bar.FontPath = "/home/xenone/code/helium/extra/DejaVuSans.ttf"
-	Bar.FontName = "DejaVuSans"
 	Bar.FontSize = 12.0
-	Bar.Font = openFont()
+	Bar.Font, _ = openFont("/home/xenone/code/helium/extra/DejaVuSans.ttf")
 
 	Border.Focused = 0x007d9c
 	Border.Unfocused = 0xddffff
@@ -69,16 +67,88 @@ func Defaults() {
 	Tags.Names = []string{"nil", "one", "two", "three", "four", "five", "six"}
 }
 
-func openFont() *truetype.Font {
-	// open ttf
-	bs, err := ioutil.ReadFile(Bar.FontPath)
+// ValidateAndModifyColor validates a color and then sets the value if valid
+func ValidateAndModifyColor(i *uint32, s string) error {
+	s = strings.TrimLeft(s, "#")
+	n, err := strconv.ParseInt(s, 16, 32)
 	if err != nil {
-		logger.Log.Fatalln(err)
+		return err
 	}
-	font, err := freetype.ParseFont(bs)
+	*i = uint32(n)
+
+	return nil
+}
+
+// ValidateAndModifyInt validates an int and then sets the value if valid
+func ValidateAndModifyInt(i *int, s string) error {
+	s = strings.TrimLeft(s, "#")
+	n, err := strconv.ParseInt(s, 0, 0)
 	if err != nil {
-		logger.Log.Fatalln(err)
+		return err
+	}
+	*i = int(n)
+
+	return nil
+}
+
+// ValidateAndModifyFloat validates an float and then sets the value if valid
+func ValidateAndModifyFloat(f *float64, s string) error {
+	s = strings.TrimLeft(s, "#")
+	n, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return err
+	}
+	*f = float64(n)
+
+	return nil
+}
+
+// ChangeFont changes the config font and path
+func ChangeFont(path string) error {
+	ft, err := openFont(path)
+	if err != nil {
+		return err
+	}
+	Bar.Font = ft
+	return nil
+}
+
+// ChangeFontSize attempts to change the font size
+func ChangeFontSize(s string) error {
+
+	n, err := strconv.ParseFloat(s, 64)
+
+	// check extents
+	ctx := freetype.NewContext()
+	ctx.SetDPI(72)
+	ctx.SetFont(Bar.Font)
+	ctx.SetFontSize(n)
+
+	_, ehf, err := ctx.MeasureString("blah")
+	eh := int(ehf / 256)
+	if err != nil {
+		return err
 	}
 
-	return font
+	if eh > Bar.Height {
+		return fmt.Errorf("%.1f is too large a font for the bar", n)
+	}
+
+	Bar.FontSize = n
+
+	return nil
+}
+
+func openFont(path string) (*truetype.Font, error) {
+	bs, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	font, err := freetype.ParseFont(bs)
+	if err != nil {
+		return nil, err
+	}
+
+	return font, nil
 }

@@ -158,3 +158,29 @@ func NoneToFocus() bool {
 
 	return numFocusable == 0
 }
+
+// UpdateFocued updates the focused frame
+func UpdateFocused() {
+	foc := GetFocused()
+	if foc != nil {
+		foc.UpdateBar()
+	}
+}
+
+// UpdateUnfocused updates all unfocused frames
+func UpdateUnfocused() {
+	for _, f := range FocusQ {
+		if f.State() == consts.UnfocusedState {
+			f.UpdateBar()
+		}
+	}
+}
+
+// UpdateTag updates all frames in tag
+func UpdateTag(t int) {
+	for _, f := range FocusQ {
+		if f.Tag() == t {
+			f.UpdateBar()
+		}
+	}
+}
