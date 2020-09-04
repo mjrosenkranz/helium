@@ -113,6 +113,14 @@ func handleConfig(m ipc.Msg, s, v string) error {
 		}
 		UpdateFocused()
 		UpdateUnfocused()
+	case "bar_height":
+		err := config.ValidateAndModifyInt(&config.Bar.Height, v)
+		if err != nil {
+			return err
+		}
+		UpdateFocused()
+		UpdateUnfocused()
+
 	default:
 		return fmt.Errorf("%s is not a valid config variable", s)
 	}

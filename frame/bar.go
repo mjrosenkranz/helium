@@ -77,6 +77,18 @@ func (f *Frame) UpdateBar() {
 		logger.Log.Println("no bar")
 		return
 	}
+
+	g, err := f.bar.Geometry()
+	if err != nil {
+		return
+	}
+
+	if g.Height() != config.Bar.Height {
+		f.bar.MoveResize(0, 0, f.client.Geom.Width(), config.Bar.Height)
+		f.client.MoveResize(0, config.Bar.Height,
+			f.client.Geom.Width(), f.h-config.Bar.Height)
+	}
+
 	title, err := ewmh.WmNameGet(wm.X, f.client.Id)
 	if err != nil {
 		logger.Log.Println(err)
