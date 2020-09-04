@@ -6,6 +6,7 @@ import (
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xwindow"
+	"github.com/xen0ne/helium/config"
 )
 
 var (
@@ -34,7 +35,7 @@ func Setup(xu *xgbutil.XUtil) {
 	}
 
 	Tags = []Tag{}
-	for i := 0; i < 7; i++ {
-		Tags = append(Tags, Tag{i, true})
+	for i := 0; i < config.Tags.Number; i++ {
+		Tags = append(Tags, Tag{i, config.Tags.Names[i], true})
 	}
 }

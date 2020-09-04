@@ -37,6 +37,13 @@ var (
 		// Width of the bar in pixels
 		Width int
 	}
+
+	Tags struct {
+		// Number of tags
+		Number int
+		// Names of each tag
+		Names []string
+	}
 )
 
 // Defaults sets all the config variables to their default values
@@ -57,6 +64,9 @@ func Defaults() {
 	Border.Focused = 0x007d9c
 	Border.Unfocused = 0xddffff
 	Border.Width = 0
+
+	Tags.Number = 7
+	Tags.Names = []string{"nil", "one", "two", "three", "four", "five", "six"}
 }
 
 func openFont() *truetype.Font {

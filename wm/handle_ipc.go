@@ -70,7 +70,7 @@ func parseMsg(m string) (string, error) {
 				for i, t := range Tags {
 					ret += fmt.Sprintf("tag %d\n"+
 						"mapped: %v\n"+
-						"frames:%+v\n", i, t.Mapped, t.Frames())
+						"frames:%+v\n", i, t.IsMapped, t.Frames())
 				}
 				return ret, nil
 			case "queue":

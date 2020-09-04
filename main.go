@@ -29,8 +29,8 @@ func main() {
 	defer X.Conn().Close()
 
 	mousebind.Initialize(X)
-	wm.Setup(X)
 	config.Defaults()
+	wm.Setup(X)
 	AddHandlers()
 
 	msgch := make(chan ipc.Msg)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/BurntSushi/xgb/xproto"
+	"github.com/xen0ne/helium/config"
 	"github.com/xen0ne/helium/consts"
 )
 
@@ -122,7 +123,7 @@ func ToggleTag(t int) {
 	for _, f := range ManagedFrames {
 		if f.Tag() == t {
 			// Unmap
-			if Tags[t].Mapped {
+			if Tags[t].IsMapped {
 				f.Unmap()
 			} else {
 				if NoneToFocus() {
@@ -136,13 +137,13 @@ func ToggleTag(t int) {
 		}
 	}
 
-	Tags[t].Mapped = !Tags[t].Mapped
+	Tags[t].IsMapped = !Tags[t].IsMapped
 }
 
 // IsValidTag returns if t is a valid tag
 func IsValidTag(t int) bool {
-	fmt.Printf("numtags: %d", len(Tags))
-	return t > 0 && t < len(Tags)
+	fmt.Printf("numtags: %d", config.Tags.Number)
+	return t >= 0 && t < config.Tags.Number
 }
 
 // NoneToFocus returns wether or not there are any windows that are focusable

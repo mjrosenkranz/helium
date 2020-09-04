@@ -2,8 +2,9 @@ package wm
 
 // Tag is a group of windows that can all be mapped or unmapped together
 type Tag struct {
-	num    int
-	Mapped bool
+	num      int
+	name     string
+	IsMapped bool
 }
 
 // Empty states if there are any windows assigned to the current tag
@@ -21,4 +22,14 @@ func (t *Tag) Frames() []Frame {
 	}
 
 	return frames
+}
+
+// ChangeName changes the name of the tag
+func (t *Tag) ChangeName(n string) {
+	t.name = n
+}
+
+// Name returns the name of the tag
+func (t *Tag) Name() string {
+	return t.name
 }
