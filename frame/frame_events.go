@@ -2,7 +2,6 @@ package frame
 
 import (
 	"fmt"
-	"log"
 	"math"
 
 	"github.com/BurntSushi/xgb/xproto"
@@ -11,6 +10,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xcursor"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/xen0ne/helium/consts"
+	"github.com/xen0ne/helium/logger"
 	"github.com/xen0ne/helium/wm"
 )
 
@@ -26,7 +26,7 @@ func (f *Frame) addFrameEvents() {
 			f.Close()
 		}).Connect(wm.X, f.bar.Id, "2", false, false)
 	if err != nil {
-		log.Println(err)
+		logger.Log.Println(err)
 	}
 }
 
@@ -39,7 +39,7 @@ func (f *Frame) moveDragBegin(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY in
 
 	cur, err := xcursor.CreateCursor(wm.X, xcursor.Gumby)
 	if err != nil {
-		log.Println(err)
+		logger.Log.Println(err)
 		return false, 0
 	}
 
@@ -79,7 +79,7 @@ func (f *Frame) resizeDragBegin(xu *xgbutil.XUtil, rootX, rootY, eventX, eventY 
 
 	cur, err := xcursor.CreateCursor(wm.X, xcursor.Gumby)
 	if err != nil {
-		log.Println(err)
+		logger.Log.Println(err)
 		return false, 0
 	}
 

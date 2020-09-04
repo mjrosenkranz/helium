@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"log"
 
 	"github.com/BurntSushi/freetype-go/freetype"
 	"github.com/BurntSushi/xgb/xproto"
@@ -14,6 +13,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/xen0ne/helium/config"
 	"github.com/xen0ne/helium/consts"
+	"github.com/xen0ne/helium/logger"
 	"github.com/xen0ne/helium/wm"
 )
 
@@ -27,7 +27,7 @@ type Bar struct {
 func (f *Frame) AddBar() {
 
 	if f.bar != nil {
-		log.Printf("Frame %s already has a bar \n", f.String())
+		logger.Log.Printf("Frame %s already has a bar \n", f.String())
 		return
 	}
 
@@ -37,7 +37,7 @@ func (f *Frame) AddBar() {
 	var err error
 	b.Window, err = xwindow.Generate(wm.X)
 	if err != nil {
-		log.Fatalf("Could not create new id %s", err)
+		logger.Log.Fatalf("Could not create new id %s", err)
 	}
 
 	b.exists = config.Bar.Height > 0
@@ -58,7 +58,7 @@ func (f *Frame) AddBar() {
 	// reparent bar
 	err = xproto.ReparentWindowChecked(wm.X.Conn(), b.Id, f.Id, 0, 0).Check()
 	if err != nil {
-		log.Println("Could not reparent bar")
+		logger.Log.Println("Could not reparent bar")
 	}
 
 	f.bar = &b
@@ -74,12 +74,12 @@ func (f *Frame) AddBar() {
 // UpdateBar updates the title of the frames bar
 func (f *Frame) UpdateBar() {
 	if !f.bar.exists {
-		log.Println("no bar")
+		logger.Log.Println("no bar")
 		return
 	}
 	title, err := ewmh.WmNameGet(wm.X, f.client.Id)
 	if err != nil {
-		log.Println(err)
+		logger.Log.Println(err)
 		title = ""
 	}
 
@@ -102,7 +102,7 @@ func (b *Bar) Draw(title string, bg, fg uint32) {
 	}
 	g, err := b.Geometry()
 	if err != nil {
-		log.Printf("Cannot get geometry for bar %x, bc: %s\n", b.Id, err)
+		logger.Log.Printf("Cannot get geometry for bar %x, bc: %s\n", b.Id, err)
 		return
 	}
 
@@ -118,7 +118,7 @@ func addtext(bar *xwindow.Window, text string, bg, fg uint32, w, h int) {
 
 	x, y, t, err := trimText(w, h, text)
 	if err != nil {
-		// log.Println(err)
+		// logger.Log.Println(err)
 		return
 	}
 
@@ -126,7 +126,7 @@ func addtext(bar *xwindow.Window, text string, bg, fg uint32, w, h int) {
 		config.Bar.FontSize, config.Bar.Font, t)
 
 	if err != nil {
-		log.Printf("Could not draw font to bar because: %v", err)
+		logger.Log.Printf("Could not draw font to bar because: %v", err)
 		return
 	}
 	// Now draw the image to the window and destroy it.
@@ -150,7 +150,7 @@ func trimText(w, h int, text string) (int, int, string, error) {
 	for {
 		ewf, ehf, err := ctx.MeasureString(string(runes))
 		if err != nil {
-			log.Println("Cold not get extents")
+			logger.Log.Println("Cold not get extents")
 		}
 		ew = int(ewf / 256)
 		eh = int(ehf / 256)

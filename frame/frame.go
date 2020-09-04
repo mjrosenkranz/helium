@@ -2,10 +2,10 @@ package frame
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/xen0ne/helium/config"
 	"github.com/xen0ne/helium/consts"
+	"github.com/xen0ne/helium/logger"
 	"github.com/xen0ne/helium/wm"
 
 	"github.com/BurntSushi/xgb/xproto"
@@ -36,11 +36,11 @@ func New(c *xwindow.Window) *Frame {
 	// If this is an override redirect, skip...
 	attrs, err := xproto.GetWindowAttributes(wm.X.Conn(), c.Id).Reply()
 	if err != nil {
-		log.Printf("Could not get window attributes for '%x': %s",
+		logger.Log.Printf("Could not get window attributes for '%x': %s",
 			c.Id, err)
 	} else {
 		if attrs.OverrideRedirect {
-			log.Printf("Not managing override redirect window %x", c.Id)
+			logger.Log.Printf("Not managing override redirect window %x", c.Id)
 			c.Map()
 			c.Stack(xproto.StackModeAbove)
 			return nil
@@ -50,13 +50,13 @@ func New(c *xwindow.Window) *Frame {
 	// make sure this is the kind of window we want to manage
 	wtype, err := ewmh.WmWindowTypeGet(wm.X, c.Id)
 	if err != nil {
-		log.Println(err)
+		logger.Log.Println(err)
 	}
 	for _, t := range wtype {
 		if t == "_NET_WM_WINDOW_TYPE_TOOLBAR" ||
 			t == "_NET_WM_WINDOW_TYPE_DOCK" ||
 			t == "_NET_WM_WINDOW_TYPE_DESKTOP" {
-			log.Printf("Not managing window of type: %s\n", t)
+			logger.Log.Printf("Not managing window of type: %s\n", t)
 			c.Map()
 			return nil
 		}
@@ -64,9 +64,9 @@ func New(c *xwindow.Window) *Frame {
 	// check if window is a submenu
 	t, err := icccm.WmTransientForGet(wm.X, c.Id)
 	if err != nil {
-		log.Printf("Could not get transient because: %s\n", err)
+		logger.Log.Printf("Could not get transient because: %s\n", err)
 	} else {
-		log.Printf("%+v\n", t)
+		logger.Log.Printf("%+v\n", t)
 	}
 
 	f := Frame{}
@@ -75,7 +75,7 @@ func New(c *xwindow.Window) *Frame {
 	// need the geometry
 	g, err := f.client.Geometry()
 	if err != nil {
-		log.Printf("Cannot get geometry for %x, bc: %s\n", f.client.Id, err)
+		logger.Log.Printf("Cannot get geometry for %x, bc: %s\n", f.client.Id, err)
 	}
 
 	x := g.X()
@@ -93,7 +93,7 @@ func New(c *xwindow.Window) *Frame {
 	// get the normal hints
 	nh, err := icccm.WmNormalHintsGet(wm.X, c.Id)
 	if err != nil {
-		log.Printf("Could not get normal hints because %s\n", err)
+		logger.Log.Printf("Could not get normal hints because %s\n", err)
 	} else {
 		if nh.Flags&icccm.SizeHintPMinSize > 0 {
 			bw := int(nh.MinWidth)
@@ -116,7 +116,7 @@ func New(c *xwindow.Window) *Frame {
 
 	f.Window, err = xwindow.Generate(wm.X)
 	if err != nil {
-		log.Printf("Could not create new window for %x\n", f.Id)
+		logger.Log.Printf("Could not create new window for %x\n", f.Id)
 	}
 	f.Create(wm.X.RootWin(),
 		f.x, f.y,
@@ -133,7 +133,7 @@ func New(c *xwindow.Window) *Frame {
 	err = xproto.ReparentWindowChecked(wm.X.Conn(),
 		f.client.Id, f.Id, 0, int16(config.Bar.Height)).Check()
 	if err != nil {
-		log.Println("Could not reparent window")
+		logger.Log.Println("Could not reparent window")
 	}
 
 	f.addClientEvents()
@@ -209,7 +209,7 @@ func (f *Frame) Focus() {
 
 	err := ewmh.ActiveWindowSet(wm.X, f.client.Id)
 	if err != nil {
-		log.Printf("Cannot set active window to %s\n", f.String())
+		logger.Log.Printf("Cannot set active window to %s\n", f.String())
 	}
 	f.Stack(xproto.StackModeAbove)
 	f.state = consts.FocusedState
@@ -241,27 +241,27 @@ func (f *Frame) Close() {
 
 	wm_protocols, err := xprop.Atm(wm.X, "WM_PROTOCOLS")
 	if err != nil {
-		log.Println(err)
+		logger.Log.Println(err)
 		return
 	}
 
 	wm_del_win, err := xprop.Atm(wm.X, "WM_DELETE_WINDOW")
 	if err != nil {
-		log.Println(err)
+		logger.Log.Println(err)
 		return
 	}
 
 	cm, err := xevent.NewClientMessage(32, f.client.Id, wm_protocols,
 		int(wm_del_win))
 	if err != nil {
-		log.Println(err)
+		logger.Log.Println(err)
 		return
 	}
 
 	err = xproto.SendEventChecked(wm.X.Conn(), false, f.client.Id, 0,
 		string(cm.Bytes())).Check()
 	if err != nil {
-		log.Printf("Could not send WM_DELETE_WINDOW "+
+		logger.Log.Printf("Could not send WM_DELETE_WINDOW "+
 			"ClientMessage because: %s", err)
 	}
 }

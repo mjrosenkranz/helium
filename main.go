@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
@@ -12,10 +11,13 @@ import (
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/xen0ne/helium/config"
 	"github.com/xen0ne/helium/ipc"
+	"github.com/xen0ne/helium/logger"
 	"github.com/xen0ne/helium/wm"
 )
 
 func main() {
+	logger.SetupLogger()
+
 	if len(os.Args) > 1 {
 		m := strings.Join(os.Args[1:], " ")
 		ipc.CtrlMsg(m)
@@ -24,7 +26,7 @@ func main() {
 
 	X, err := xgbutil.NewConn()
 	if err != nil {
-		log.Fatal(err)
+		logger.Log.Fatal(err)
 	}
 	defer X.Conn().Close()
 
@@ -46,7 +48,7 @@ func main() {
 			<-pingAfter
 		case msg := <-msgch:
 			fmt.Printf("Recievd msg: %s\n", msg.Str)
-			ipc.Send(wm.HandleIpcMsg(msg))
+			wm.HandleIpcMsg(msg)
 		case <-pingQuit:
 			fmt.Printf("xevent loop has quit")
 			return

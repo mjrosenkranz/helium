@@ -2,7 +2,6 @@ package frame
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
@@ -10,6 +9,7 @@ import (
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/xprop"
 	"github.com/xen0ne/helium/consts"
+	"github.com/xen0ne/helium/logger"
 	"github.com/xen0ne/helium/wm"
 )
 
@@ -18,7 +18,7 @@ func (f *Frame) addClientEvents() {
 		xproto.EventMaskStructureNotify)
 
 	if err != nil {
-		log.Println(err)
+		logger.Log.Println(err)
 	}
 	// tell us if the client is killed
 	f.cDestroyNotify().Connect(wm.X, f.client.Id)
@@ -51,7 +51,7 @@ func (f *Frame) cPropertyNotify() xevent.PropertyNotifyFun {
 	fn := func(X *xgbutil.XUtil, ev xevent.PropertyNotifyEvent) {
 		name, err := xprop.AtomName(wm.X, ev.Atom)
 		if err != nil {
-			log.Printf("Could not get property atom name for '%s' because: %s.", ev, err)
+			logger.Log.Printf("Could not get property atom name for '%s' because: %s.", ev, err)
 			return
 		}
 		f.handleProperty(name)
@@ -69,7 +69,7 @@ func (f *Frame) handleProperty(p string) {
 	case "WM_NAME":
 		f.UpdateBar()
 	default:
-		// log.Printf("Dont know how to handle property '%s'\n", p)
+		// logger.Log.Printf("Dont know how to handle property '%s'\n", p)
 		return
 	}
 }
@@ -90,7 +90,7 @@ func (f *Frame) cConfigureRequest() xevent.ConfigureRequestFun {
 
 func (f *Frame) cDestroyNotify() xevent.DestroyNotifyFun {
 	fn := func(X *xgbutil.XUtil, ev xevent.DestroyNotifyEvent) {
-		log.Printf("destroy notify for %x\n", ev.Window)
+		logger.Log.Printf("destroy notify for %x\n", ev.Window)
 
 		f.client.Detach()
 
@@ -108,20 +108,20 @@ func (f *Frame) cDestroyNotify() xevent.DestroyNotifyFun {
 		for i, ee := range xevent.Peek(X) {
 			if dn, ok := ee.Event.(xproto.DestroyNotifyEvent); ok {
 				if dn.Window == ev.Window {
-					log.Printf("another destroy for %x\n", ev.Window)
+					logger.Log.Printf("another destroy for %x\n", ev.Window)
 					xevent.DequeueAt(X, i)
 				}
 			}
 			if pn, ok := ee.Event.(xproto.PropertyNotifyEvent); ok {
 				if pn.Window == ev.Window {
-					log.Printf("skipping property notify for dying window %x\n", ev.Window)
+					logger.Log.Printf("skipping property notify for dying window %x\n", ev.Window)
 					xevent.DequeueAt(X, i)
 				}
 			}
 		}
 
 		// if wm.GetFocused() == nil {
-		// 	log.Println("focusqueue is empty")
+		// 	logger.Log.Println("focusqueue is empty")
 		// } else {
 
 		// }
@@ -132,7 +132,7 @@ func (f *Frame) cDestroyNotify() xevent.DestroyNotifyFun {
 		fnext := wm.GetFocused()
 		if fnext != nil && wasLast {
 			fnext.Focus()
-			log.Println("focusing next window")
+			logger.Log.Println("focusing next window")
 		}
 		wm.ManagedFrames = wm.RemoveFrame(f, wm.ManagedFrames)
 	}

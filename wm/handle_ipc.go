@@ -11,21 +11,22 @@ import (
 
 // HandleIpcMsg takes an ipcMsg and does whatever
 // requred before returning a new response
-func HandleIpcMsg(m ipc.Msg) ipc.Msg {
+func HandleIpcMsg(m ipc.Msg) {
 	// parse the message
-	msg, err := parseMsg(m.Str)
+	err := parseMsg(m)
 	// if cannot parse then send error msg back
 	if err != nil {
-		return ipc.NewIpcMsg(m.Conn, err.Error())
+		m.Str = "failed\n" + err.Error()
+		ipc.Send(m)
+		m.Conn.Close()
+		return
 	}
 
-	// if can parse then do the action or send it off
-	// respond with success or not
-	return ipc.NewIpcMsg(m.Conn, msg)
+	m.Conn.Close()
 }
 
-func parseMsg(m string) (string, error) {
-	args := strings.Split(m, " ")
+func parseMsg(m ipc.Msg) error {
+	args := strings.Split(m.Str, " ")
 	switch len(args) {
 	case 1:
 		cmd := args[0]
@@ -36,7 +37,7 @@ func parseMsg(m string) (string, error) {
 				f.Close()
 			}
 		} else {
-			return "", fmt.Errorf("Command %s not found", cmd)
+			return fmt.Errorf("Command %s not found", cmd)
 		}
 	case 2:
 		switch args[0] {
@@ -45,63 +46,69 @@ func parseMsg(m string) (string, error) {
 		case "toggle":
 			t, err := strconv.ParseInt(args[1], 0, 0)
 			if err != nil {
-				return err.Error(), err
+				return err
 			}
+
 			if !IsValidTag(int(t)) {
-				return "", fmt.Errorf("%d is not a valid tag", t)
+				return fmt.Errorf("%d is not a valid tag", t)
+			} else {
+				if int(t) == 0 {
+					return fmt.Errorf("%d is not a valid tag", t)
+				}
 			}
 			ToggleTag(int(t))
-			return "", nil
+			return nil
 		case "tag":
 			t, err := strconv.ParseInt(args[1], 0, 0)
 			if err != nil {
-				return err.Error(), err
+				return err
 			}
 			if !IsValidTag(int(t)) {
-				return "", fmt.Errorf("%d is not a valid tag", t)
+				return fmt.Errorf("%d is not a valid tag", t)
 			}
 			if GetFocused() != nil {
 				GetFocused().SetTag(int(t))
 			}
 		case "print":
+			ret := ""
 			switch args[1] {
 			case "tags":
-				ret := ""
 				for i, t := range Tags {
 					ret += fmt.Sprintf("tag %d\n"+
 						"mapped: %v\n"+
 						"frames:%+v\n", i, t.IsMapped, t.Frames())
 				}
-				return ret, nil
+				ipc.Send(ipc.Msg{m.Conn, ret})
+				return nil
 			case "queue":
-				ret := ""
 				for _, f := range FocusQ {
 					ret += fmt.Sprintf("%+v\n", f)
 				}
-				return ret, nil
+				ipc.Send(ipc.Msg{m.Conn, ret})
+				return nil
 			default:
-				return "", fmt.Errorf("cannot print %s", args[0])
+				return fmt.Errorf("cannot print %s", args[0])
 			}
 		default:
-			return "", fmt.Errorf("%s is not a command", args[0])
+			return fmt.Errorf("%s is not a command", args[0])
 		}
 	case 3:
 		fmt.Println("three")
 	default:
-		return "", errors.New("Too many options")
+		return errors.New("Too many options")
 	}
-	return "success", nil
+	return nil
 }
 
-func handleFocusMsg(s string) (string, error) {
+func handleFocusMsg(s string) error {
 	switch s {
 	case "next":
 		FocusNext()
-		return "", nil
+		return nil
 	case "prev":
 		FocusPrev()
-		return "", nil
+		return nil
 	default:
-		return "", fmt.Errorf("%s is not a valid focus command", s)
+		return fmt.Errorf("%s is not a valid focus command", s)
 	}
 }

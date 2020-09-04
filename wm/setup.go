@@ -1,12 +1,11 @@
 package wm
 
 import (
-	"log"
-
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xwindow"
 	"github.com/xen0ne/helium/config"
+	"github.com/xen0ne/helium/logger"
 )
 
 var (
@@ -31,7 +30,7 @@ func Setup(xu *xgbutil.XUtil) {
 
 	err := Root.Listen(mask)
 	if err != nil {
-		log.Fatalf("Could not listen to Root window events: %s\n", err)
+		logger.Log.Fatalf("Could not listen to Root window events: %s\n", err)
 	}
 
 	Tags = []Tag{}

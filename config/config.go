@@ -2,10 +2,10 @@ package config
 
 import (
 	"io/ioutil"
-	"log"
 
 	"github.com/BurntSushi/freetype-go/freetype"
 	"github.com/BurntSushi/freetype-go/freetype/truetype"
+	"github.com/xen0ne/helium/logger"
 )
 
 var (
@@ -73,11 +73,11 @@ func openFont() *truetype.Font {
 	// open ttf
 	bs, err := ioutil.ReadFile(Bar.FontPath)
 	if err != nil {
-		log.Fatalln(err)
+		logger.Log.Fatalln(err)
 	}
 	font, err := freetype.ParseFont(bs)
 	if err != nil {
-		log.Fatalln(err)
+		logger.Log.Fatalln(err)
 	}
 
 	return font
