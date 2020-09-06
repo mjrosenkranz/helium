@@ -84,6 +84,13 @@ func (f *Frame) UpdateBar() {
 	}
 
 	if g.Height() != config.Bar.Height {
+		if config.Bar.Height == 0 {
+			f.bar.Window.Unmap()
+			fmt.Println("unmapping")
+		} else {
+			f.bar.Window.Map()
+		}
+
 		f.bar.MoveResize(0, 0, f.client.Geom.Width(), config.Bar.Height)
 		f.client.MoveResize(0, config.Bar.Height,
 			f.client.Geom.Width(), f.h-config.Bar.Height)
