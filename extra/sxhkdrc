@@ -49,14 +49,14 @@ super + shift + q
 	killall Xorg
 
 super + n
-	$HOME/code/helium/helium focus next
+	helium focus next
 super + p
-	$HOME/code/helium/helium focus prev
+	helium focus prev
 super + w
-	$HOME/code/helium/helium close
+	helium close
 
 super + {0-9}
-	$HOME/code/helium/helium toggle {0-9}
+	helium toggle {0-9}
 super + shift + {0-9}
-	$HOME/code/helium/helium tag {0-9}
+	helium tag {0-9}
 

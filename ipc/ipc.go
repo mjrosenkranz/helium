@@ -1,6 +1,7 @@
 package ipc
 
 import (
+	"strconv"
 	"fmt"
 	"io"
 	"net"
@@ -12,7 +13,7 @@ import (
 
 // SOCKPATH is the path to the ipc socket
 const (
-	SOCKPATH = "/tmp/helium.sock"
+	SOCKPATH = "/tmp/%s.helium.sock"
 	MSGLEN   = 80
 	EOM      = "EOM"
 )
@@ -30,7 +31,7 @@ func NewIpcMsg(c net.Conn, s string) Msg {
 
 // CtrlMsg sends a message from the ipc client to the windowmanager
 func CtrlMsg(m string) {
-	conn, err := net.Dial("unix", SOCKPATH)
+	conn, err := net.Dial("unix", getSockPath())
 	if err != nil {
 		logger.Log.Fatal(err)
 	}
@@ -67,10 +68,17 @@ func CtrlMsg(m string) {
 
 // RecieveMsg sends messages read in a gorutine to the main wm process
 func RecieveMsg(msgch chan Msg) {
-	os.Remove(SOCKPATH)
+	// set env
+	err := os.Setenv("HELIUMPID", strconv.Itoa(os.Getpid()));
+	if  err != nil {
+		logger.Log.Fatal(err)
+	}
+	fmt.Println(os.Getpid())
+	// delete an old socket if that exists
+	os.Remove(getSockPath())
 
 	// open socket
-	l, err := net.Listen("unix", SOCKPATH)
+	l, err := net.Listen("unix", getSockPath())
 	if err != nil {
 		logger.Log.Fatalf("could not recieve control events because %s\n", err)
 		return
@@ -100,4 +108,8 @@ func Send(msg Msg) {
 	if err != nil {
 		logger.Log.Printf("Could not write back to socket because %s\n", err)
 	}
+}
+
+func getSockPath() string {
+	return "/tmp/helium." + os.Getenv("HELIUMPID") + ".sock"
 }
