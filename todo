@@ -9,16 +9,19 @@ Basic window management:
     [ ] move in cardinal directions
 [ ] Focus
     [x] update colors
-    [ ] prev/next
+    [x] prev/next
     [ ] cardinal directions
 [ ] Tags
-    [ ] 0 is tagless
-    [ ] add/remove window from tag
-    [ ] toggle individual tags
+    [x] 0 is tagless
+    [x] add/remove window from tag
+    [x] toggle individual tags
     [ ] hide/show all tags except for selected
 [ ] Monitors
     [ ] update on changes
     [ ] one instace of each tag (switches based on focused monitor)
+[ ] Documentation
+		[ ] core functionality
+		[ ] helium ctrl
 
 
 Goodies:
