@@ -1,0 +1,5 @@
+package grid
+
+type Cell struct {
+	x, y, w, h int
+}

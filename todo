@@ -1,3 +1,5 @@
+Issues:
+	windows remapping to empty screen arent focused color
 Basic window management:
 [ ] Map window
     [x] reparent
