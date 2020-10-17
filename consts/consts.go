@@ -17,6 +17,15 @@ const (
 	UnmappedState
 )
 
+type Corner int
+
+const (
+	NWCorner Corner = iota
+	NECorner
+	SECorner
+	SWCorner
+)
+
 const (
 	NoDir Direction = iota
 	NorthDir
