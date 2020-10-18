@@ -5,9 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/BurntSushi/xgbutil/mousebind"
-
 	"github.com/BurntSushi/xgbutil"
+	"github.com/BurntSushi/xgbutil/mousebind"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/xen0ne/helium/config"
 	"github.com/xen0ne/helium/ipc"

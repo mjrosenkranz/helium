@@ -9,6 +9,7 @@ Basic window management:
 [ ] Movement
     [ ] snap to grid
     [ ] move in cardinal directions
+		[ ] make move relative and move the same command (mov 0 0 would be absolute while move +1 +0 would not)
 [ ] Focus
     [x] update colors
     [x] prev/next
@@ -24,7 +25,8 @@ Basic window management:
 [ ] Documentation
 		[ ] core functionality
 		[ ] helium ctrl
-
+[ ] Misc
+		[ ] restructure the commands (maybe use a general function signature to make parsing easier)
 
 Goodies:
  [ ] Tabbing

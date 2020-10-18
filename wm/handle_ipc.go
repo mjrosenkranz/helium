@@ -5,8 +5,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/BurntSushi/xgbutil/xrect"
 	"github.com/xen0ne/helium/config"
 	"github.com/xen0ne/helium/consts"
+	"github.com/xen0ne/helium/grid"
 	"github.com/xen0ne/helium/ipc"
 )
 
@@ -29,6 +31,11 @@ func HandleIpcMsg(m ipc.Msg) {
 func parseMsg(m ipc.Msg) error {
 	args := strings.Split(m.Str, " ")
 	switch args[0] {
+	case "snap":
+		f := GetFocused()
+		if f != nil {
+			f.SnapToGrid(grid.New(xrect.New(0, 0, 800, 600), 3, 4, 10))
+		}
 	case "close":
 		f := GetFocused()
 		if f != nil {
