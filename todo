@@ -1,5 +1,7 @@
 Issues:
-	windows remapping to empty screen arent focused color
+	Should tag 0 always be on top?
+	Should there be a preferance tag order?
+	Should select tags be "unkillable?"
 Basic window management:
 [ ] Map window
     [x] reparent
@@ -7,7 +9,7 @@ Basic window management:
     [x] write title
     [ ] add border
 [ ] Movement
-    [ ] snap to grid
+    [x] snap to grid
     [ ] move in cardinal directions
 		[ ] make move relative and move the same command (mov 0 0 would be absolute while move +1 +0 would not)
 [ ] Focus
@@ -18,15 +20,20 @@ Basic window management:
     [x] 0 is tagless
     [x] add/remove window from tag
     [x] toggle individual tags
+		[ ] tag should maybe be above when remapped rather than below (see issues)
     [ ] hide/show all tags except for selected
+		[ ] move all windows in current tag to another
+		[ ] automatically add windows to tags by name
 [ ] Monitors
     [ ] update on changes
     [ ] one instace of each tag (switches based on focused monitor)
+		[ ] fullscreen
 [ ] Documentation
-		[ ] core functionality
-		[ ] helium ctrl
+	[ ] core functionality
+	[ ] helium ctrl
 [ ] Misc
-		[ ] restructure the commands (maybe use a general function signature to make parsing easier)
+	[ ] restructure the commands (maybe use a general function signature to make parsing easier)
+	[x] autostart script
 
 Goodies:
  [ ] Tabbing

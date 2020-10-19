@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/BurntSushi/xgbutil"
@@ -37,6 +38,19 @@ func main() {
 	msgch := make(chan ipc.Msg)
 
 	go ipc.RecieveMsg(msgch)
+
+	// now that initialization is done run the startup script
+	cmd := &exec.Cmd{
+		Path:   os.ExpandEnv("$HOME/docs/code/helium/extra/autostart.sh"),
+		Stdout: os.Stderr,
+		Stderr: os.Stderr,
+	}
+
+	err = cmd.Run()
+
+	if err != nil {
+		fmt.Print(err)
+	}
 
 	// start event loop
 	pingBefore, pingAfter, pingQuit := xevent.MainPing(X)

@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"strconv"
 	"strings"
+	"log"
 
 	"github.com/BurntSushi/freetype-go/freetype"
 	"github.com/BurntSushi/freetype-go/freetype/truetype"
@@ -57,7 +58,11 @@ func Defaults() {
 	Bar.CenterText = true
 	Bar.TextOffset = 5
 	Bar.FontSize = 12.0
-	Bar.Font, _ = openFont("/home/xenone/code/helium/extra/DejaVuSans.ttf")
+	var err error
+	Bar.Font, err = openFont("/home/xenone/docs/code/helium/extra/DejaVuSans.ttf")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	Border.Focused = 0x007d9c
 	Border.Unfocused = 0xddffff
