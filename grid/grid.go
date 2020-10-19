@@ -29,17 +29,20 @@ func (g *Grid) GetBounds(width, height int) (n, s, e, w int) {
 
 // SnapCorner snaps a given corner to the closest cell corner of the same kind
 func (g *Grid) SnapCorner(x, y int, c consts.Corner) (nx, ny int) {
-	d := int(math.Inf(1))
-	nx = 0
-	ny = 0
+	d := math.MaxInt32
+	nx = math.MaxInt32
+	ny = math.MaxInt32
+
 	for i := 0; i < g.cols; i++ {
 		for j := 0; j < g.rows; j++ {
 			tx, ty := g.CellCorner(i, j, c)
+
 			if dist(x, y, tx, ty) < d {
 				d = dist(x, y, tx, ty)
 				nx = tx
 				ny = ty
 			}
+
 		}
 	}
 
