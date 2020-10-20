@@ -45,6 +45,10 @@ var (
 		// Names of each tag
 		Names []string
 	}
+
+	Grid struct {
+		Rows, Cols, Gaps int
+	}
 )
 
 // Defaults sets all the config variables to their default values
@@ -70,6 +74,10 @@ func Defaults() {
 
 	Tags.Number = 7
 	Tags.Names = []string{"nil", "one", "two", "three", "four", "five", "six"}
+
+	Grid.Rows = 9
+	Grid.Cols = 16
+	Grid.Gaps = 10
 }
 
 // ValidateAndModifyColor validates a color and then sets the value if valid

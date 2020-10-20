@@ -39,18 +39,7 @@ func main() {
 
 	go ipc.RecieveMsg(msgch)
 
-	// now that initialization is done run the startup script
-	cmd := &exec.Cmd{
-		Path:   os.ExpandEnv("$HOME/docs/code/helium/extra/autostart.sh"),
-		Stdout: os.Stderr,
-		Stderr: os.Stderr,
-	}
-
-	err = cmd.Run()
-
-	if err != nil {
-		fmt.Print(err)
-	}
+	// runAutoStart()
 
 	// start event loop
 	pingBefore, pingAfter, pingQuit := xevent.MainPing(X)
@@ -66,5 +55,19 @@ func main() {
 			fmt.Printf("xevent loop has quit")
 			return
 		}
+	}
+}
+
+func runAutoStart() {
+	cmd := &exec.Cmd{
+		Path:   os.ExpandEnv("$HOME/docs/code/helium/extra/autostart.sh"),
+		Stdout: os.Stderr,
+		Stderr: os.Stderr,
+	}
+
+	err := cmd.Run()
+
+	if err != nil {
+		fmt.Print(err)
 	}
 }
