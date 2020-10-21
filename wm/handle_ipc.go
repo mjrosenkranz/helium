@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	// "github.com/BurntSushi/xgbutil/xrect"
+	"github.com/BurntSushi/xgbutil/xrect"
 	"github.com/xen0ne/helium/config"
 	"github.com/xen0ne/helium/consts"
 	"github.com/xen0ne/helium/grid"
@@ -32,10 +32,13 @@ func parseMsg(m ipc.Msg) error {
 	args := strings.Split(m.Str, " ")
 	switch args[0] {
 	case "snap":
-		f := GetFocused()
-		if f != nil {
-			f.SnapToGrid(grid.New(Heads[0], config.Grid.Rows, config.Grid.Cols, config.Grid.Gaps))
+		r := xrect.New(10, 10, Heads[0].Width()-20, Heads[0].Height()-20)
+		g := grid.New(r, config.Grid.Rows, config.Grid.Cols, config.Grid.Gaps)
+
+		for _, f := range FocusQ {
+			f.SnapToGrid(g)
 		}
+
 	case "close":
 		f := GetFocused()
 		if f != nil {

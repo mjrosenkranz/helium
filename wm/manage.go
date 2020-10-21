@@ -15,8 +15,6 @@ var (
 	// FocusQ is the order of focused frames
 	FocusQ []Frame
 
-	IsShowing = false
-
 	Tags []Tag
 )
 

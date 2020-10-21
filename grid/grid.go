@@ -57,31 +57,50 @@ func dist(x1, y1, x2, y2 int) int {
 
 // CellCorner returns the x and y pixel coordinates of the given cell
 // relative to the top left corner of the Grid
-func (g *Grid) CellCorner(_x, _y int, c consts.Corner) (x, y int) {
+func (g *Grid) CellCorner(_x, _y int, c consts.Corner) (int, int) {
 	cw := g.CellWidth()
 	ch := g.CellHeight()
 
-	// calculate north west corner
-	x = _x * (cw + g.gap)
-	y = _y * (ch + g.gap)
+	x := float64(_x)
+	y := float64(_y)
+
+	west := x * (cw + float64(g.gap))
+	north := y * (ch + float64(g.gap))
+	east := x*float64(g.gap) + (x+1)*cw
+	south := y*float64(g.gap) + (y+1)*ch
+
 	switch c {
 	case consts.NWCorner:
-		return
+		return g.rect.X() + int(west), g.rect.Y() + int(north)
 	case consts.NECorner:
-		return x + cw, y
+		return g.rect.X() + int(east), g.rect.Y() + int(north)
 	case consts.SECorner:
-		return x + cw, y + ch
+		return g.rect.X() + int(east), g.rect.Y() + int(south)
 	case consts.SWCorner:
-		return x, y + ch
+		return g.rect.X() + int(west), g.rect.Y() + int(south)
+	default:
+		return 0, 0
 	}
 
-	return
+	// calculate north west corner
+	// x = x * (cw + float64(g.gap))
+	// y = y * (ch + float64(g.gap))
+	// switch c {
+	// case consts.NWCorner:
+	// 	return
+	// case consts.NECorner:
+	// 	return x + cw, y
+	// case consts.SECorner:
+	// 	return x + cw, y + ch
+	// case consts.SWCorner:
+	// 	return x, y + ch
+	// }
 }
 
-func (g *Grid) CellWidth() int {
-	return (g.rect.Width() - ((g.cols - 1) * g.gap)) / g.cols
+func (g *Grid) CellWidth() float64 {
+	return float64((g.rect.Width() - ((g.cols - 1) * g.gap))) / float64(g.cols)
 }
 
-func (g *Grid) CellHeight() int {
-	return (g.rect.Height() - ((g.rows - 1) * g.gap)) / g.rows
+func (g *Grid) CellHeight() float64 {
+	return float64((g.rect.Height() - ((g.rows - 1) * g.gap))) / float64(g.rows)
 }
