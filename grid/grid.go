@@ -81,20 +81,6 @@ func (g *Grid) CellCorner(_x, _y int, c consts.Corner) (int, int) {
 	default:
 		return 0, 0
 	}
-
-	// calculate north west corner
-	// x = x * (cw + float64(g.gap))
-	// y = y * (ch + float64(g.gap))
-	// switch c {
-	// case consts.NWCorner:
-	// 	return
-	// case consts.NECorner:
-	// 	return x + cw, y
-	// case consts.SECorner:
-	// 	return x + cw, y + ch
-	// case consts.SWCorner:
-	// 	return x, y + ch
-	// }
 }
 
 func (g *Grid) CellWidth() float64 {

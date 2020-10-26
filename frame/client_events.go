@@ -5,6 +5,7 @@ import (
 
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
+	"github.com/BurntSushi/xgbutil/icccm"
 	"github.com/BurntSushi/xgbutil/mousebind"
 	"github.com/BurntSushi/xgbutil/xevent"
 	"github.com/BurntSushi/xgbutil/xprop"
@@ -24,7 +25,6 @@ func (f *Frame) addClientEvents() {
 	f.cDestroyNotify().Connect(wm.X, f.client.Id)
 	f.cPropertyNotify().Connect(wm.X, f.client.Id)
 	f.cConfigureRequest().Connect(wm.X, f.client.Id)
-	// c.cbMapNotify().Connect(wm.X, c.Id())
 	// c.cbClientMessage().Connect(wm.X, c.Id())
 
 	// add focous on click
@@ -68,14 +68,17 @@ func (f *Frame) handleProperty(p string) {
 		fallthrough
 	case "WM_NAME":
 		f.UpdateBar()
+	case "WM_NORMAL_HINTS":
+		if nhints, err := icccm.WmNormalHintsGet(wm.X, f.client.Id); err == nil {
+			fmt.Printf("%v\n", nhints)
+		}
 	default:
-		// logger.Log.Printf("Dont know how to handle property '%s'\n", p)
+		logger.Log.Printf("Dont know how to handle property '%s'\n", p)
 		return
 	}
 }
 
 func (f *Frame) cConfigureRequest() xevent.ConfigureRequestFun {
-
 	fn := func(X *xgbutil.XUtil, ev xevent.ConfigureRequestEvent) {
 		// ignore this event if the state requires so
 		if f.state == consts.MovingState || f.state == consts.ResizingState {

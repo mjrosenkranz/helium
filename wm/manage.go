@@ -130,6 +130,7 @@ func ToggleTag(t int) {
 					fmt.Println("none to focus so reverting")
 				} else {
 					f.Map()
+					f.Focus()
 				}
 			}
 		}

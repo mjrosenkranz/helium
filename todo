@@ -1,7 +1,5 @@
 Issues:
-	Should tag 0 always be on top?
-	Should there be a preferance tag order?
-	Should select tags be "unkillable?"
+	Fix spotify bug
 Basic window management:
 [ ] Map window
     [x] reparent
@@ -34,6 +32,11 @@ Basic window management:
 [ ] Misc
 	[ ] restructure the commands (maybe use a general function signature to make parsing easier)
 	[x] autostart script
+
+Maybes:
+	Should tag 0 always be on top?
+	Should there be a preferance tag order?
+	Should select tags be "unkillable?"
 
 Goodies:
  [ ] Tabbing

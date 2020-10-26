@@ -8,15 +8,20 @@ import (
 	"github.com/xen0ne/helium/grid"
 )
 
+// resizeAll resizes the frame, client, and bar windows
+func (f *Frame) resizeAll() {
+	f.MoveResize(f.x, f.y, f.w, f.h)
+	if f.bar.exists {
+		f.bar.MoveResize(0, 0, f.w, config.Bar.Height)
+	}
+	f.client.MoveResize(0, config.Bar.Height, f.w, f.h-config.Bar.Height)
+}
+
 // Resize resizes the frame to the given width and height
 func (f *Frame) Resize(w, h int) {
 	f.w = w
 	f.h = h
-	f.Window.Resize(w, h)
-	if f.bar.exists {
-		f.bar.Resize(w, config.Bar.Height)
-	}
-	f.client.Resize(w, h-config.Bar.Height)
+	f.resizeAll()
 }
 
 // ResizeRel resizes the frame to the given width and height
@@ -37,11 +42,7 @@ func (f *Frame) ResizeRel(amt int, dir consts.Direction) {
 		return
 	}
 
-	f.MoveResize(f.x, f.y, f.w, f.h)
-	if f.bar.exists {
-		f.bar.Resize(f.w, config.Bar.Height)
-	}
-	f.client.Resize(f.w, f.h-config.Bar.Height)
+	f.resizeAll()
 }
 
 // SnapSizeToGrid moves and resizes the current window to the grid
@@ -56,9 +57,5 @@ func (f *Frame) SnapToGrid(g *grid.Grid) {
 	f.w = farx - x
 	f.h = fary - y
 
-	f.MoveResize(f.x, f.y, f.w, f.h)
-	if f.bar.exists {
-		f.bar.Resize(f.w, config.Bar.Height)
-	}
-	f.client.Resize(f.w, f.h-config.Bar.Height)
+	f.resizeAll()
 }

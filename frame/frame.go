@@ -28,11 +28,7 @@ type Frame struct {
 	tag        int
 }
 
-// New creates a new client from a map event
-func New(c *xwindow.Window) *Frame {
-	wm.X.Grab()
-	defer wm.X.Ungrab()
-
+func shouldManage(c *xwindow.Window) bool {
 	// If this is an override redirect, skip...
 	attrs, err := xproto.GetWindowAttributes(wm.X.Conn(), c.Id).Reply()
 	if err != nil {
@@ -43,7 +39,7 @@ func New(c *xwindow.Window) *Frame {
 			logger.Log.Printf("Not managing override redirect window %x", c.Id)
 			c.Map()
 			c.Stack(xproto.StackModeAbove)
-			return nil
+			return false
 		}
 	}
 
@@ -58,7 +54,7 @@ func New(c *xwindow.Window) *Frame {
 			t == "_NET_WM_WINDOW_TYPE_DESKTOP" {
 			logger.Log.Printf("Not managing window of type: %s\n", t)
 			c.Map()
-			return nil
+			return false
 		}
 	}
 	// check if window is a submenu
@@ -67,15 +63,18 @@ func New(c *xwindow.Window) *Frame {
 		logger.Log.Printf("Could not get transient because: %s\n", err)
 	} else {
 		logger.Log.Printf("%+v\n", t)
+		return false
 	}
 
-	f := Frame{}
-	f.client = c
+	return true
+}
+
+func setupGeom(c *xwindow.Window) (int, int, int, int) {
 
 	// need the geometry
-	g, err := f.client.Geometry()
+	g, err := c.Geometry()
 	if err != nil {
-		logger.Log.Printf("Cannot get geometry for %x, bc: %s\n", f.client.Id, err)
+		panic(fmt.Sprintf("Cannot get geometry for %x, bc: %s\n", c.Id, err))
 	}
 
 	x := g.X()
@@ -107,13 +106,25 @@ func New(c *xwindow.Window) *Frame {
 		}
 	}
 
-	f.client.Resize(w, h)
+	return x, y, w, h + config.Bar.Height
+}
 
-	f.x = x
-	f.y = y
-	f.w = w
-	f.h = h + config.Bar.Height
+// New creates a new client from a map event
+func New(c *xwindow.Window) *Frame {
+	wm.X.Grab()
+	defer wm.X.Ungrab()
 
+	if !shouldManage(c) {
+		return nil
+	}
+
+	f := Frame{}
+	f.client = c
+
+	f.x, f.y, f.w, f.h = setupGeom(c)
+
+	// create the frame window!
+	var err error
 	f.Window, err = xwindow.Generate(wm.X)
 	if err != nil {
 		logger.Log.Printf("Could not create new window for %x\n", f.Id)
@@ -127,7 +138,7 @@ func New(c *xwindow.Window) *Frame {
 			xproto.EventMaskButtonMotion|
 			xproto.EventMaskSubstructureNotify)
 
-	// set the tag to initial
+	// initialize tag to 0
 	f.tag = 0
 
 	err = xproto.ReparentWindowChecked(wm.X.Conn(),
@@ -138,13 +149,14 @@ func New(c *xwindow.Window) *Frame {
 
 	f.addClientEvents()
 
-	f.Map()
+	f.AddBar()
 
 	return &f
 }
 
 // Tag returns the tag of the frame
 func (f *Frame) Tag() int {
+
 	return f.tag
 }
 

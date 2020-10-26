@@ -68,7 +68,6 @@ func (f *Frame) AddBar() {
 		f.addFrameEvents()
 		f.UpdateBar()
 	}
-
 }
 
 // UpdateBar updates the title of the frames bar

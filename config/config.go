@@ -3,9 +3,9 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"strconv"
 	"strings"
-	"log"
 
 	"github.com/BurntSushi/freetype-go/freetype"
 	"github.com/BurntSushi/freetype-go/freetype/truetype"
