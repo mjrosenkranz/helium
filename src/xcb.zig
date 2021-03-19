@@ -32,15 +32,17 @@ pub const XCB_CW_DONT_PROPAGATE = 4096;
 pub const XCB_CW_COLORMAP = 8192;
 pub const XCB_CW_CURSOR = 16384;
 
+pub const xcb_connection = c.struct_xcb_connection_t;
+
 /// https://xcb.freedesktop.org/PublicApi/
-pub const Xcb = struct {
+pub const conn = struct {
     // An xcb_connection_t is an opaque structure containing all data that XCB
     // needs to communicate with an X server. The structure is defined in xcbint.h.
     c_ptr: *c.struct_xcb_connection_t,
 
     const Self = @This();
 
-    pub fn connect(display: ?[*]const u8, screen: ?[*]c_int) Error!Self {
+    pub fn connect(display: ?*const u8, screen: ?*c_int) Error!Self {
         const c_ptr = c.xcb_connect(display, screen);
         if (c_ptr == null) return error.CannotConnectToXServer;
         return Self{ .c_ptr = c_ptr.? };
@@ -63,7 +65,6 @@ pub const Xcb = struct {
     }
 
     /// In XCB, a Graphics Context is, as a window, characterized by an Id.
-    /// https://xcb.freedesktop.org/tutorial/basicwindowsanddrawing/
     pub fn createWindow(self: *Self, depth: u8, window_id: u32, root: u32, x: i16, y: i16, width: u16, height: u16, border_width: u16, win_class: u16, root_visual: u32, mask: comptime u32, values: ?[*]const u32) void {
         const win = c.xcb_create_window(self.c_ptr, depth, window_id, root, x, y, width, height, border_width, win_class, root_visual, mask, values);
     }
