@@ -3,11 +3,13 @@ usingnamespace @import("c.zig");
 
 const State = struct {
     conn: *xcb_connection_t,
-
+    screen: *xcb_screen_t,
     const Self = @This();
+
     pub fn new() Self {
         return .{
-            .conn = undefined
+            .conn = undefined,
+            .screen = undefined
         };
     }
 
@@ -17,25 +19,24 @@ const State = struct {
         if (xcb_connection_has_error(self.conn) == 1) {
             std.debug.warn("cannot connect to display\n", .{});
             return error.CouldNotConnect;
-        } else {
-            std.debug.warn("connected to display: \n", .{});
         }
 
-        const screen = @ptrCast(*xcb_screen_t, xcb_setup_roots_iterator(xcb_get_setup(self.conn)).data);
+        // loop through screens
+        var iter = xcb_setup_roots_iterator(xcb_get_setup(self.conn));
+        self.screen = @ptrCast(*xcb_screen_t, iter.data);
 
         const values: u32 = XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_BUTTON_PRESS;
         // subscribe to events
-        _ = xcb_change_window_attributes(self.conn, screen.root, XCB_CW_EVENT_MASK, &values);
+        _ = xcb_change_window_attributes(self.conn, self.screen.root, XCB_CW_EVENT_MASK, &values);
         _ = xcb_flush(self.conn);
     }
 
     pub fn event_loop(self: *Self) !void {
         std.debug.warn("Waiting for events...\n", .{});
-        var event: ?*xcb_generic_event_t = undefined;
+        //var event: ?*xcb_generic_event_t = undefined;
         while (true) {
-            event = xcb_wait_for_event(self.conn);
-            if (event) |e| {
-                std.debug.warn("Event: {}\n", .{e.response_type});
+            while (xcb_poll_for_event(self.conn)) |e| {
+                std.debug.warn("Event: {}\n", .{e.*.response_type & ~@as(u32, 0x80)});
             }
             _ = xcb_flush(self.conn);
         }
@@ -49,6 +50,7 @@ const State = struct {
 pub fn main() !void {
     var state = State.new();
     try state.setup();
-    defer state.shutdown();
     try state.event_loop();
+
+    state.shutdown();
 }
