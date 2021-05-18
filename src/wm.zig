@@ -1,5 +1,6 @@
 const std = @import("std");
 usingnamespace @import("c.zig");
+const events = @import("events.zig");
 
 pub const WM = struct {
     conn: *xcb_connection_t,
@@ -31,20 +32,11 @@ pub const WM = struct {
         _ = xcb_flush(self.conn);
     }
 
-    pub fn event_loop(self: *Self) !void {
+    pub fn run(self: *Self) !void {
         std.debug.warn("Waiting for events...\n", .{});
-        //var event: ?*xcb_generic_event_t = undefined;
         while (true) {
             while (xcb_poll_for_event(self.conn)) |e| {
-                var evtype = e.*.response_type & ~@as(u32, 0x80);
-                switch (evtype) {
-                    XCB_CREATE_NOTIFY => std.debug.warn("Window created\n", .{}),
-                    else => {
-                        // otherwise print the number
-                        std.debug.warn("Event: {}\n", .{evtype});
-                    }
-                }
-                // check if this an event we want to handle
+                events.handle_event(e.*.response_type & ~@as(u32, 0x80));
             }
             _ = xcb_flush(self.conn);
         }
