@@ -3,4 +3,5 @@
 pub usingnamespace @cImport({
     // XCB is only required when using the XCB surface backend for Cairo.
     @cInclude("xcb/xcb.h");
+    @cInclude("xcb/xproto.h");
 });
